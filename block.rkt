@@ -23,10 +23,6 @@
                             (cdr txlist))]))
   (txlist->string/acc "" txlist))
 
-; txlist->string acc txlist
-; txlist((string-append ...) cdr txlist)
-; start with acc ""
-
 (define (block->string b)
   (string-append (number->string (block-index b)) 
                  (block-previous_hash b) 
