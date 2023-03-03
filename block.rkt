@@ -1,5 +1,6 @@
 #lang racket
 (require racket/match)
+(require sha)
 (require "transaction.rkt")
 
 (struct block (index 
@@ -32,8 +33,13 @@
                  (block-miner_address b)
                  (block-hash_val b)))
 
+(define (hash_block b n)
+  (define new_block (struct-copy block b [nonce n]))
+  (bytes->hex-string (sha256 (string->bytes/utf-8 (block->string new_block)))))
+
 (provide (struct-out block) 
          add_tx_block 
          txlist->string 
          block->string
+         hash_block
          (all-from-out "transaction.rkt"))
