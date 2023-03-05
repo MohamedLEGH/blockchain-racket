@@ -17,12 +17,9 @@
   new_block)
 
 (define (txlist->string txlist)
-  (define (txlist->string/acc acc txlist)
-    (match (length txlist)
-        [0 acc]
-        [_ (txlist->string/acc (string-append acc (tx->string (car txlist))) 
-                            (cdr txlist))]))
-  (txlist->string/acc "" txlist))
+  (define (string-append/tx tx str)
+    (string-append (tx->string tx) str))
+  (foldl string-append/tx "" txlist))
 
 (define (block->string b)
   (string-append (number->string (block-index b)) 
@@ -39,7 +36,7 @@
 
 (define (mine_block b difficulty_bit_level)
    ; return final nonce
-   ;target is 2*(256-difficulty)-1
+   ; target is 2^(256-difficulty)-1
   (define target (- (expt 2 (- 256 difficulty_bit_level)) 1))
   (define (proof_of_work b acc)
     (define hash_val (string->number (hash_block b acc) 16)) ; hexstring to number
@@ -49,8 +46,8 @@
   (proof_of_work b 0))
 
 (provide (struct-out block) 
-         add_tx_block 
-         txlist->string 
+         add_tx_block
+         txlist->string
          block->string
          hash_block
          mine_block
