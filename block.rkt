@@ -37,9 +37,21 @@
   (define new_block (struct-copy block b [nonce n]))
   (bytes->hex-string (sha256 (string->bytes/utf-8 (block->string new_block)))))
 
+(define (mine_block b difficulty_bit_level)
+   ; return final nonce
+   ;target is 2*(256-difficulty)-1
+  (define target (- (expt 2 (- 256 difficulty_bit_level)) 1))
+  (define (proof_of_work b acc)
+    (define hash_val (string->number (hash_block b acc) 16)) ; hexstring to number
+    (if (< hash_val target)
+        acc
+        (proof_of_work b (add1 acc))))
+  (proof_of_work b 0))
+
 (provide (struct-out block) 
          add_tx_block 
          txlist->string 
          block->string
          hash_block
+         mine_block
          (all-from-out "transaction.rkt"))
