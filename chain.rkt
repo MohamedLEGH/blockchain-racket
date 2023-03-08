@@ -30,9 +30,11 @@
 (define (create_genesis_block bc)
   (define timestamp (current-seconds))
   (define first_block (block 0 "" 0 timestamp '() "miner" ""))
-  (define nonceval (mine_block first_block (blockchain-difficulty_bit_level bc)))
+  (define nonceval
+    (mine_block first_block (blockchain-difficulty_bit_level bc)))
   (define hashval (hash_block first_block nonceval))
-  (define first_block_mined (struct-copy block first_block [nonce nonceval] [hash_val hashval]))
+  (define first_block_mined
+    (struct-copy block first_block [nonce nonceval] [hash_val hashval]))
   (define chain (add_block_chain first_block_mined bc))
   ; clearing the tx pool
   (define chain_clear (struct-copy blockchain chain [tx_pool '()]))
@@ -49,14 +51,17 @@
   (define new_block (block index previoushash 0 timestamp txs miner_addr ""))
   (define nonceval (mine_block new_block (blockchain-difficulty_bit_level bc)))
   (define hashval (hash_block new_block nonceval))
-  (define first_block_mined (struct-copy block new_block [nonce nonceval] [hash_val hashval]))
+  (define first_block_mined
+    (struct-copy block new_block [nonce nonceval] [hash_val hashval]))
   (define chain (add_block_chain first_block_mined bc))
   ; clearing the tx pool
   (define chain_clear (struct-copy blockchain chain [tx_pool '()]))
   chain_clear)
 
 (define (mining_block bc)
-  (if (equal? '() (blockchain-blocklist bc)) (create_genesis_block bc) (mine_new_block bc)))
+  (if (equal? '() (blockchain-blocklist bc))
+      (create_genesis_block bc)
+      (mine_new_block bc)))
 
 (provide (struct-out blockchain)
          add_block_chain

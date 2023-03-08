@@ -4,7 +4,9 @@
 
 ; need to add reward ??
 ; need to add verif block
-(struct block (index previous_hash nonce timestamp tx_list miner_address hash_val) #:prefab)
+(struct block
+        (index previous_hash nonce timestamp tx_list miner_address hash_val)
+  #:prefab)
 
 (define (add_tx_block t b)
   (define new_list (cons t (block-tx_list b)))
@@ -34,7 +36,8 @@
   ; target is 2^(256-difficulty)-1
   (define target (- (expt 2 (- 256 difficulty_bit_level)) 1))
   (define (proof_of_work b acc)
-    (define hash_val (string->number (hash_block b acc) 16)) ; hexstring to number
+    (define hash_val
+      (string->number (hash_block b acc) 16)) ; hexstring to number
     (if (< hash_val target) acc (proof_of_work b (add1 acc))))
   (proof_of_work b 0))
 
