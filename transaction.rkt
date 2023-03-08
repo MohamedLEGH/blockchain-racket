@@ -1,5 +1,5 @@
 #lang racket
-
+; need to add verif tx
 (struct tx (sender receiver value) #:prefab)
 
 (define (tx->string tx_val)

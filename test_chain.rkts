@@ -1,0 +1,10 @@
+#lang racket
+(require "chain.rkt")
+
+(define bc1 (blockchain '() '() 5))
+(define tx1 (tx "network" "me" 10))
+(define tx2 (tx "myself" "moha" 30))
+(define bc2 (create_genesis_block bc1))
+(define bc3 (add_tx_chain tx1 bc2))
+(define bc4 (mine_new_block bc3))
+;; (enter! "test_chain.rkts")

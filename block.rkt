@@ -1,8 +1,9 @@
 #lang racket
-(require racket/match)
 (require sha)
 (require "transaction.rkt")
 
+; need to add reward ??
+; need to add verif block
 (struct block (index 
                previous_hash 
                nonce 
@@ -25,7 +26,7 @@
   (string-append (number->string (block-index b)) 
                  (block-previous_hash b) 
                  (number->string (block-nonce b))
-                 (block-timestamp b)
+                 (number->string (block-timestamp b))
                  (txlist->string (block-tx_list b))
                  (block-miner_address b)
                  (block-hash_val b)))
