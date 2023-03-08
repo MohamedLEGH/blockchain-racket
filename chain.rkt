@@ -4,8 +4,7 @@
 ; tx_pool is a list of transactions
 ; need to add block reward
 ; need to add verif chain
-(struct blockchain (blocklist tx_pool 
-                    difficulty_bit_level) #:prefab)
+(struct blockchain (blocklist tx_pool difficulty_bit_level) #:prefab)
 
 (define (add_block_chain b bc)
   (define new_list (cons b (blockchain-blocklist bc)))
@@ -57,11 +56,9 @@
   chain_clear)
 
 (define (mining_block bc)
-  (if (equal? '() (blockchain-blocklist bc))
-    (create_genesis_block bc)
-    (mine_new_block bc)))
+  (if (equal? '() (blockchain-blocklist bc)) (create_genesis_block bc) (mine_new_block bc)))
 
-(provide (struct-out blockchain) 
+(provide (struct-out blockchain)
          add_block_chain
          add_tx_chain
          blocklist->string
