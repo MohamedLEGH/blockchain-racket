@@ -56,6 +56,11 @@
   (define chain_clear (struct-copy blockchain chain [tx_pool '()]))
   chain_clear)
 
+(define (mining_block bc)
+  (if (equal? '() (blockchain-blocklist bc))
+    (create_genesis_block bc)
+    (mine_new_block bc)))
+
 (provide (struct-out blockchain) 
          add_block_chain
          add_tx_chain
@@ -63,4 +68,5 @@
          blockchain->string
          create_genesis_block
          mine_new_block
+         mining_block
          (all-from-out "block.rkt"))
