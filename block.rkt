@@ -27,6 +27,27 @@
                  (block-miner_address b)
                  (block-hash_val b)))
 
+(define (txlist->jsexpr txlist)
+  (define (build-txlist-jsexpr js acc)
+    (cons (tx->jsexpr js) acc))
+  (foldl build-txlist-jsexpr '() txlist))
+
+(define (block->jsexpr b)
+  (hash 'index
+        (block-index b)
+        'previous_hash
+        (block-previous_hash b)
+        'nonce
+        (block-nonce b)
+        'timestamp
+        (block-timestamp b)
+        'tx_list
+        (txlist->jsexpr (block-tx_list b))
+        'miner_address
+        (block-miner_address b)
+        'hash_val
+        (block-hash_val b)))
+
 (define (hash_block b n)
   (define new_block (struct-copy block b [nonce n]))
   (bytes->hex-string (sha256 (string->bytes/utf-8 (block->string new_block)))))
@@ -45,6 +66,8 @@
          add_tx_block
          txlist->string
          block->string
+         txlist->jsexpr
+         block->jsexpr
          hash_block
          mine_block
          (all-from-out "transaction.rkt"))

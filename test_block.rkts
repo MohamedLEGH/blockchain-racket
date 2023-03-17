@@ -1,7 +1,7 @@
 #lang racket
 (require "block.rkt")
 
-(define b1 (block 0 "" 0 "010101" '() "miner" ""))
+(define b1 (block 0 "" 0 10101 '() "miner" ""))
 (define tx1 (tx "network" "me" 10))
 (define tx2 (tx "myself" "moha" 30))
 (block->string b1)

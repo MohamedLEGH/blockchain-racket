@@ -26,6 +26,19 @@
                  (txlist->string (blockchain-tx_pool bc))
                  (number->string (blockchain-difficulty_bit_level bc))))
 
+(define (blocklist->jsexpr blocklist)
+  (define (build-blocklist-jsexpr js acc)
+    (cons (block->jsexpr js) acc))
+  (foldl build-blocklist-jsexpr '() blocklist))
+
+(define (blockchain->jsexpr bc)
+  (hash 'blocklist
+        (blocklist->jsexpr (blockchain-blocklist bc))
+        'tx_pool
+        (txlist->jsexpr (blockchain-tx_pool bc))
+        'difficulty-bit-level
+        (blockchain-difficulty_bit_level bc)))
+
 ; need to add mining price transaction
 (define (create_genesis_block bc)
   (define timestamp (current-seconds))
@@ -68,6 +81,8 @@
          add_tx_chain
          blocklist->string
          blockchain->string
+         blocklist->jsexpr
+         blockchain->jsexpr
          create_genesis_block
          mine_new_block
          mining_block
