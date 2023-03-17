@@ -1,4 +1,5 @@
-TODO:
+
+#TODO
 
 * Adding pretty-print
 
@@ -21,3 +22,12 @@ TODO:
 * Adding Merkle tree storage
 
 * Adding repl when connecting to node
+
+# Clean code
+
+## Formatter
+raco fmt -i --width 80 *.rkt
+
+## Linter
+raco review *.rkt
+
