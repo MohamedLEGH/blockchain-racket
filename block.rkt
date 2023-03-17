@@ -56,10 +56,10 @@
   ; return final nonce
   ; target is 2^(256-difficulty)-1
   (define target (- (expt 2 (- 256 difficulty_bit_level)) 1))
-  (define (proof_of_work b acc)
+  (define (proof_of_work b_val acc)
     (define hash_val
-      (string->number (hash_block b acc) 16)) ; hexstring to number
-    (if (< hash_val target) acc (proof_of_work b (add1 acc))))
+      (string->number (hash_block b_val acc) 16)) ; hexstring to number
+    (if (< hash_val target) acc (proof_of_work b_val (add1 acc))))
   (proof_of_work b 0))
 
 (provide (struct-out block)

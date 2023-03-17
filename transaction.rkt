@@ -3,8 +3,13 @@
 ; need to add verif tx
 (struct tx (sender receiver value) #:prefab)
 
-(define (tx->jsexpr tx)
-  (hash 'sender (tx-sender tx) 'receiver (tx-receiver tx) 'value (tx-value tx)))
+(define (tx->jsexpr tx_val)
+  (hash 'sender
+        (tx-sender tx_val)
+        'receiver
+        (tx-receiver tx_val)
+        'value
+        (tx-value tx_val)))
 
 (define (tx->string tx_val)
   (string-append (tx-sender tx_val)
