@@ -29,5 +29,5 @@
 raco fmt -i --width 80 *.rkt
 
 ## Linter
-raco review *.rkt
+raco review name-file.rkt
 
