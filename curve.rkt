@@ -3,7 +3,7 @@
 
 (struct elliptic-curve (a b field) #:prefab)
 
-;; parameters of the secp256k1 curve 
+;; parameters of the secp256k1 curve
 
 ; prime of the field
 (define P #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F)
@@ -81,7 +81,8 @@
      (define x3 (sub_element (pow_element s 2) (rmul_element x1 2)))
      ; y3 = s * (x1 - x3) - y1
      (define y3 (sub_element (mul_element s (sub_element x1 x3)) y1))
-     (point x3 y3 secp256k1)]))
+     (point x3 y3 secp256k1)]
+     [else (error "cannot add the 2 points on the curve")]))
 
 (define (binary_expansion value scalar)
   (cond
@@ -107,6 +108,8 @@
          secp256k1))
 
 (define e (+ (expt 2 240) (expt 2 31)))
+
+(equal? (rmul_point G e) p2)
 
 (provide (struct-out elliptic-curve)
          (struct-out point)

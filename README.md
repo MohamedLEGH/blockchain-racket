@@ -14,7 +14,6 @@
 * Adding storage with sqlite
 
 * Adding wallet
-	* ECDSA keys
 	* Bitcoin format for pubkeys
 
 * Adding gossip protocol for message propagation
@@ -22,6 +21,9 @@
 * Adding Merkle tree storage
 
 * Adding repl when connecting to node
+
+DONE
+	* ECDSA keys
 
 # Clean code
 

@@ -5,8 +5,9 @@
 (require "curve.rkt")
 
 (define (generate_random)
-  (define p (for/fold ([result 0]) ([byte (in-bytes (crypto-random-bytes 32))])
-    (+ byte (* result 256))))
+  (define p
+    (for/fold ([result 0]) ([byte (in-bytes (crypto-random-bytes 32))])
+      (+ byte (* result 256))))
   ; the random number need to be inferior to N (the order of the curve)
   ; if it's not the case (small probability), recompute a random number
   (if (and (< p N) (> p 0)) p (generate_random)))
@@ -17,17 +18,17 @@
   (define k (generate_random))
   (define R (rmul_point G k))
   (define r_val (field-element-value (point-x R)))
-  (define k_inv (modular-inverse k N))
-  (define s_val (modulo (* (+ msg (* r_val pk)) k_inv) N))
+  (define s_val (with-modulus N (mod/ (+ msg (* r_val pk)) k)))
   (signature r_val s_val))
 
 (define (verify sig pub msg)
   (define s_val (signature-s sig))
-  (define s_inv (modular-inverse s_val N))
   (define r_val (signature-r sig))
-  (define u (modulo (* s_inv msg) N))
-  (define v (modulo (* r_val s_inv) N))
-  (define r_compute (field-element-value (point-x (add_point (rmul_point G u) (rmul_point pub v)))))
+  (define u (with-modulus N (mod/ msg s_val)))
+  (define v (with-modulus N (mod/ r_val s_val)))
+  (define r_compute
+    (field-element-value
+     (point-x (add_point (rmul_point G u) (rmul_point pub v)))))
   (equal? r_compute r_val))
 
 ;; test
@@ -55,7 +56,8 @@
 
 ;# Test case 1.1: false signature r
 
-(define r1bis #xAB8D1C87E51D0D441BE8B3DD5B05C8795B48875DFFE00B7FFCFAC23010D3A395)
+(define r1bis
+  #xAB8D1C87E51D0D441BE8B3DD5B05C8795B48875DFFE00B7FFCFAC23010D3A395)
 
 (define sig11 (signature r1bis s1))
 (equal? (verify sig11 pub1 z1) #f)
@@ -69,7 +71,8 @@
 
 ;# Test case 1.3: false message
 
-(define z1bis #xEC208BAA0FC1C29F708A9CA96FDEFF3AC3F230BB4A7BA4AEDE4942AD003C0F60)
+(define z1bis
+  #xEC208BAA0FC1C29F708A9CA96FDEFF3AC3F230BB4A7BA4AEDE4942AD003C0F60)
 
 (equal? (verify sig1 pub1 z1bis) #f)
 
@@ -98,7 +101,6 @@
          secp256k1))
 
 (equal? (verify sig1 pub1bisbis z1) #f)
-
 
 ;# Test case 2: verify authenticity for different signature w/ same P
 ;z = 0x7C076FF316692A3D7EB3C3BB0F8B1488CF72E1AFCD929E29307032997A838A3D

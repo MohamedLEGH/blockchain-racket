@@ -6,4 +6,4 @@
 (define bitcoin_wifprefix #x80)
 (define bitcoin_addrprefix #x00)
 
-(provide generate_private_key)
+(provide max_32bitvalue)
