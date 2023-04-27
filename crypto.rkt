@@ -3,35 +3,41 @@
 
 (struct galois-field (prime) #:prefab)
 
-(define (in_field gf value)
+(define (in_field? gf value)
   (and (<= 0 value) (< value (galois-field-prime gf))))
 
 (struct field-element (value field) #:prefab)
 
 (define (add_element fe1 fe2)
-  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (mod+ (field-element-value fe1) (field-element-value fe2))) (field-element-field fe1) ))
+  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (mod+ (field-element-value fe1) (field-element-value fe2))) (field-element-field fe1)))
 
 (define (sub_element fe1 fe2)
-  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (mod- (field-element-value fe1) (field-element-value fe2))) (field-element-field fe1) ))
+  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (mod- (field-element-value fe1) (field-element-value fe2))) (field-element-field fe1)))
 
 (define (rmul_element fe1 scalar)
   (field-element (modulo (* (field-element-value fe1) scalar) (galois-field-prime (field-element-field fe1))) (field-element-field fe1)))
 
 (define (mul_element fe1 fe2)
-  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (mod* (field-element-value fe1) (field-element-value fe2))) (field-element-field fe1) ))
+  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (mod* (field-element-value fe1) (field-element-value fe2))) (field-element-field fe1)))
 
 (define (pow_element fe1 exponent)
-  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (modexpt (field-element-value fe1) exponent)) (field-element-field fe1) ))
+  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (modexpt (field-element-value fe1) exponent)) (field-element-field fe1)))
 
 (define (truediv_element fe1 fe2)
-  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (mod/ (field-element-value fe1) (field-element-value fe2))) (field-element-field fe1) ))
+  (field-element (with-modulus (galois-field-prime (field-element-field fe1)) (mod/ (field-element-value fe1) (field-element-value fe2))) (field-element-field fe1)))
 
 (struct elliptic-curve (a b field) #:prefab)
 
-(define (in-field point_val ec)
+(define (on_curve? point_val ec)
   (define x (point-x point_val))
   (define y (point-y point_val))
-  (= (pow_element y 2) ((add_element (add_element (pow_element x 3) (mul_element (elliptic-curve-a ec) x)) (elliptic-curve-b ec)))))
+  (define a (elliptic-curve-a ec))
+  (define b (elliptic-curve-b ec))
+  (define ysquare (pow_element y 2))
+  (define xcube (pow_element x 3))
+  (define ax (mul_element a x))
+  ; y^2 = x^3 + ax + b
+  (equal? ysquare (add_element (add_element xcube ax) b)))
 
 (define P #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F)
 
@@ -60,7 +66,7 @@
           ; s = (y2 - y1) / (x2 - x1)
           (define s (truediv_element (sub_element y2 y1) (sub_element x2 x1)))
           ; x3 = s ** 2 - x1 - x2
-          (define x3 (sub_element (pow_element s 2) (sub_element x1 x2)))
+          (define x3 (sub_element (sub_element (pow_element s 2) x1) x2))
           ; y3 = s * (x1 - x3) - y1
           (define y3 (sub_element (mul_element s (sub_element x1 x3)) y1))
           (point x3 y3 secp256k1)]
@@ -76,37 +82,18 @@
             (define x3 (sub_element (pow_element s 2) (rmul_element x1 2)))
             ; y3 = s * (x1 - x3) - y1
             (define y3 (sub_element (mul_element s (sub_element x1 x3)) y1))
-            (point x3 y3 secp256k1)]
-  )
-)
+            (point x3 y3 secp256k1)]))
 
 (define I (point null null secp256k1))
 
-(define (binary_expansion current scalar result)
-    (if (= scalar 0)
-      result
-      (if (= (bitwise-and scalar 1) 1)
-        (binary_expansion (add_point current current) (arithmetic-shift scalar -1) (add_point result current))
-        (binary_expansion (add_point current current) (arithmetic-shift scalar -1) result))))
+(define (binary_expansion value scalar)
+  (cond [(equal? scalar 0) I]
+        [(equal? scalar 1) value]
+        [(equal? (modulo scalar 2) 1) (add_point value (binary_expansion value (- scalar 1)))]
+        [else (binary_expansion (add_point value value) (/ scalar 2))]))
 
-(define (rmul_point p1 scalar)
-    (binary_expansion p1 scalar I))
-
-;(define (rmul_point p1 scalar)
-;    (define result I)
-;    (for ([i scalar]) (set! result (add_point p1 result)))
-;    result)
-
-(define (rmul_point_2 p1 scalar)
-  (define current p1)
-  (define result I)
-  (for/list ([i (in-naturals)]
-            #:break (= scalar 0))
-            (when (= (bitwise-and scalar 1) 1) (set! result (add_point result current)))
-            (set! current (add_point current current))
-            (set! scalar (arithmetic-shift scalar -1))
-  )
-  result)
+(define (rmul_point value scalar)
+    (binary_expansion value scalar))
 
 (define p2 (point (field-element #x9577FF57C8234558F293DF502CA4F09CBC65A6572C842B39B366F21717945116 field_P) (field-element #x10B49C67FA9365AD7B90DAB070BE339A1DAF9052373EC30FFAE4F72D5E66D053 field_P) secp256k1))
 
@@ -114,7 +101,9 @@
 
 (provide (struct-out galois-field)
          (struct-out field-element)
-         in_field add_element sub_element rmul_element mul_element
+         (struct-out elliptic-curve)
+         (struct-out point)
+         in_field? add_element sub_element rmul_element mul_element
          pow_element truediv_element
-         add_point rmul_point rmul_point_2
-         I G N p2 e)
+         add_point rmul_point on_curve?
+         I G N p2 e secp256k1)
