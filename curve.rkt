@@ -114,4 +114,6 @@
          add_point
          rmul_point
          G
-         N)
+         P
+         N
+         secp256k1)
