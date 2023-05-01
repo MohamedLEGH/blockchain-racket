@@ -12,9 +12,17 @@
 	* tcp connection
 
 * Adding storage with sqlite
-
+	* Storage of the current blockchain
+	* Storage of my balance
+	* Storage of the mempool of transactions ?
+	
 * Adding wallet
 	* Bitcoin format for pubkeys
+	* Store the private key in a file
+
+#NICE TO HAVE
+
+* Cypher the file where the private key is stored (with a password)
 
 * Adding gossip protocol for message propagation
 
@@ -22,8 +30,9 @@
 
 * Adding repl when connecting to node
 
-DONE
-	* ECDSA keys
+#DONE
+
+* ECDSA cryptography
 
 # Clean code
 

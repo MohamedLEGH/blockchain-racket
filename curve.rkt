@@ -21,6 +21,9 @@
 
 (struct point (x y curve) #:prefab)
 
+(define (point_to_string point_val)
+  (string-append (field_to_string (point-x point_val)) (field_to_string (point-y point_val))))
+
 (define (on_curve? point_val ec)
   (define x (point-x point_val))
   (define y (point-y point_val))
@@ -114,6 +117,7 @@
 (provide (struct-out elliptic-curve)
          (struct-out point)
          on_curve?
+         point_to_string
          add_point
          rmul_point
          G

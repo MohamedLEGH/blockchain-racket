@@ -1,7 +1,9 @@
 #lang racket
 (require racket/random)
 (require math/number-theory)
-(require "field.rkt")
+(require crypto)
+(require crypto/libcrypto)(require "field.rkt")
+(crypto-factories (list libcrypto-factory))
 (require "curve.rkt")
 
 (define (generate_random)
@@ -12,16 +14,31 @@
   ; if it's not the case (small probability), recompute a random number
   (if (and (< p N) (> p 0)) p (generate_random)))
 
-(struct signature (r s))
+(define (priv_to_pub pk) ; pk in hexa string format
+  (point_to_string (rmul_point G (string->number pk 16))))
 
-(define (sign pk msg)
+
+(struct signature (r s)) ; should check if signature is the same in bitcoin
+
+(define (signature->jsexpr sig_val)
+  (hash 'r
+        (signature-r sig_val)
+        's
+        (signature-s sig_val)))
+
+(define (signature->string tx_val)
+  (string-append (number->string (signature-r tx_val))
+                 (number->string (signature-s tx_val))))
+
+
+(define (sign pk msg) ; should check if siging is the same in bitcoin
   (define k (generate_random))
   (define R (rmul_point G k))
   (define r_val (field-element-value (point-x R)))
   (define s_val (with-modulus N (mod/ (+ msg (* r_val pk)) k)))
   (signature r_val s_val))
 
-(define (verify sig pub msg)
+(define (verify sig pub msg) ; should check if verify signature is the same in bitcoin
   (define s_val (signature-s sig))
   (define r_val (signature-r sig))
   (define u (with-modulus N (mod/ msg s_val)))
@@ -31,7 +48,20 @@
      (point-x (add_point (rmul_point G u) (rmul_point pub v)))))
   (equal? r_compute r_val))
 
-;; test
+(define (sha256_hex value)
+  (bytes->hex-string (digest 'sha256 (hex->bytes value))))
+
+(define (ripemd160_hex value)
+  (bytes->hex-string (digest 'ripemd160 (hex->bytes value))))
+
+(define (doublesha256 value)
+  (sha256_hex (sha256_hex value)))
+
+(define (hash160 value)
+  (ripemd160_hex (sha256_hex value)))
+
+
+;;;;;;;;;;;;;;;;; test
 
 (define pub1
   (point (field-element
@@ -128,6 +158,10 @@
 (verify sig3 pub3 z3)
 
 (provide (struct-out signature)
+         signature->jsexpr
+         signature->string
          generate_random
+         priv_to_pub
          sign
-         verify)
+         verify
+         sha256_hex ripemd160_hex doublesha256 hash160)
