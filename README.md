@@ -17,7 +17,8 @@
 	* Storage of the mempool of transactions ?
 	
 * Adding wallet
-	* Bitcoin format for pubkeys
+	* Compressed keys
+	* others format for bitcoin keys
 	* Store the private key in a file
 
 #NICE TO HAVE
@@ -33,6 +34,7 @@
 #DONE
 
 * ECDSA cryptography
+* Bitcoin format for pubkeys
 
 # Clean code
 
