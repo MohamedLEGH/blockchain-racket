@@ -17,6 +17,7 @@
 (define bech32_bitcoin_prefix "bc") ; "tb" for testnet
 
 ;; opcodes
+(define OP_0 "00")
 (define OP_DUP "76")
 (define OP_HASH160 "a9")
 (define OP_EQUALVERIFY "88")
@@ -181,7 +182,14 @@
     (define address (string-append bitcoin_addrprefix_scripthash (hash160 script)))
     (base58check_encode (string-append address (generate_checksum address))))
 
-(define (pub_to_bech32 pub) ; compressed pubkey is mandatory
+(define (pubkey_to_nestedpubkeyhash pubkey) ; compressed key is mandatory
+    (define hash160_val (hash160 pubkey))
+    (define pushdata_val (pushdataval hash160_val))
+    (define script (string-append OP_0 pushdata_val hash160_val))
+    (define address (string-append bitcoin_addrprefix_scripthash (hash160 script)))
+    (base58check_encode (string-append address (generate_checksum address))))
+
+(define (pubkey_to_bech32 pub) ; compressed pubkey is mandatory
     (define hash160_val (hash160 pub))
     (define hex5bit (hexbytes_to_hex5bit hash160_val))
     (define val_list (cons 0 hex5bit))
@@ -212,7 +220,8 @@
          pubkeyhash_to_P2PKH
          pubkey_to_pubkeyscripthash
          pubkey_to_scrithash1of1musig
+         pubkey_to_nestedpubkeyhash
          split5part
          hexbytes_to_hex5bit
-         pub_to_bech32)
+         pubkey_to_bech32)
 
