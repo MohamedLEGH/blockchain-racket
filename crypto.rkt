@@ -79,16 +79,16 @@
         pk
         (- N pk)))
   ; Let t be the byte-wise xor of bytes(d) and hashBIP0340/aux(a)
-  (define premimage_aux (~r a #:base 16 #:min-width 64 #:pad-string "0"))
-  (define tag_hex (tagged_hash "BIP0340/aux" premimage_aux))
+  (define preimage_aux (~r a #:base 16 #:min-width 64 #:pad-string "0"))
+  (define tag_hex (tagged_hash "BIP0340/aux" preimage_aux))
   (define tag_val (string->number tag_hex 16))
   (define t (bitwise-xor d tag_val))
-  ; Let rand = hashBIP0340/nonce(t || bytes(P) || m)[
+  ; Let rand = hashBIP0340/nonce(t || bytes(P) || m)
   (define t_hex (~r t #:base 16 #:min-width 64 #:pad-string "0"))
   (define Px_hex (~r (field-element-value (point-x Point)) #:base 16 #:min-width 64 #:pad-string "0"))
-  (define premimage_nonce (string-append t_hex Px_hex msg_hex))
-  (define rand_val (tagged_hash "BIP0340/nonce" premimage_nonce))
-  ; Let k' = int(rand) mod n[
+  (define preimage_nonce (string-append t_hex Px_hex msg_hex))
+  (define rand_val (tagged_hash "BIP0340/nonce" preimage_nonce))
+  ; Let k' = int(rand) mod n
   (define k_prime (modulo (string->number rand_val 16) N))
   ; Fail if k' = 0.
   (when (= k_prime 0) (error "fail, kprime cannot be zero"))
@@ -101,8 +101,8 @@
         (- N k_prime)))
   ; Let e = int(hashBIP0340/challenge(bytes(R) || bytes(P) || m)) mod n.
   (define Rx_hex (~r (field-element-value (point-x R)) #:base 16 #:min-width 64 #:pad-string "0"))
-  (define premimage_challenge (string-append Rx_hex Px_hex msg_hex))
-  (define e_hex (tagged_hash "BIP0340/challenge" premimage_challenge))
+  (define preimage_challenge (string-append Rx_hex Px_hex msg_hex))
+  (define e_hex (tagged_hash "BIP0340/challenge" preimage_challenge))
   (define e (modulo (string->number e_hex 16) N))
   ; Let sig = bytes(R) || bytes((k + ed) mod n).
   (define k_plus_ed (with-modulus N (mod+ k (* e d))))
@@ -291,6 +291,12 @@
 (verify_schnorr sig5 pub5 z5)
 (verify_schnorr sig5_compute pub5 z5)
 
+;# Test case 5bis: verify Schnorr : odd y pubkey
+(define e5bis #x0000000000000000000000000000000000000000000000000000000000000006) ; a private key is just a random number
+(define pub5bis "fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556") ; G*e to get the public key
+(define sig5_computebis (sign_schnorr e5bis z5))
+(verify_schnorr sig5_computebis pub5bis z5)
+
 ;# Test case 5.1: false signature s
 
 (define sig5bis "E807831F80848D1069A5371B402410364BDF1C5F8307B0084C55F1CE2DCA821525F66A4A85EA8B71E482A74F382D2CE5EBEEE8FDB2172F477DF4900D310536C0")
@@ -305,7 +311,7 @@
 
 ;# Test case 5.3: false pub key x
 
-(define pub5bis
+(define pub53
   (point (field-element
           #x887386E452B8EACC4ACFDE10D9AAF7F6D9A0F975AABB10D006E4DA568744D06C
           P)
@@ -313,8 +319,8 @@
           #x61DE6D95231CD89026E286DF3B6AE4A894A3378E393E93A0F45B666329A0AE34
           P)
          secp256k1))
-(define pub5bis_val (pub_to_pubschnorr pub5bis)) ;
-(equal? (verify_schnorr sig5 pub5bis_val z5) #f)
+(define pub53_val (pub_to_pubschnorr pub53)) ;
+(equal? (verify_schnorr sig5 pub53_val z5) #f)
 
 ;# Test case 5.4: false pub key y
 

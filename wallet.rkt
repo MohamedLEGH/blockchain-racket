@@ -1,5 +1,6 @@
 #lang racket
 (require racket/string)
+(require "curve.rkt")
 (require "crypto.rkt")
 (require "base58.rkt")
 
@@ -27,6 +28,8 @@
 
 ; bech32
 (define bech32chars "qpzry9x8gf2tvdw0s3jn54khce6mua7l")
+(define BECH32_CONST 1)
+(define BECH32M_CONST #x2bc830a3)
 
 (define (pushdataval val) ; val in hexa
     (number->string (/ (string-length val) 2) 16))
@@ -49,7 +52,7 @@
     (define prefix (make-string nb_0 #\0))
     (string-append prefix (number->string (base58decode value) 16)))
 
-; used in bech32 format
+; used in bech32 format, take a str with binary data, return list of 5bytes str
 (define (split5part str) ; maybe I can do it in pure forme with fold
     (define str_l (string-length str))
     (define nb_string (quotient str_l 5))
@@ -57,7 +60,7 @@
     (define list_str '())
     (for ([i nb_string])
         (set! list_str (cons (substring str (* i 5) (* (+ i 1) 5)) list_str)))
-    (when (> rest_string 0) (set! list_str (cons (substring str (* nb_string 5)) list_str)))
+    (when (> rest_string 0) (set! list_str (cons (~a (substring str (* nb_string 5)) #:min-width 5 #:pad-string "0") list_str)))
     (reverse list_str))
 
 ; used in bech32 format
@@ -88,11 +91,24 @@
     ) values)
     chk)
 
-(define (generate_checksum_bech32 val)
+(define (generate_checksum_bech32 val #:version [version 1])
     (define values (append (expandhrp) val))
-    (define polymod (bitwise-xor (bech32_polymod (append values '(0 0 0 0 0 0))) 1))
+    (define const_val 
+    (if (= version 0)
+        BECH32_CONST
+        BECH32M_CONST))
+    (define polymod (bitwise-xor (bech32_polymod (append values '(0 0 0 0 0 0))) const_val))
     (define checksum '(0 1 2 3 4 5))
     (map (lambda (i) (bitwise-and (arithmetic-shift polymod (- (* 5 (- 5 i)))) 31)) checksum))
+
+(define (bech32_encode hashval #:version [version 1]) ; take a hashvalue
+    (define hex5bit (hexbytes_to_hex5bit hashval))
+    (define val_list (cons version hex5bit)) ; witness version
+    (define checksum (generate_checksum_bech32 val_list #:version version))
+    (define list_and_checksum (append val_list checksum))
+    (define char_list (map (lambda (nb) (string-ref bech32chars nb)) list_and_checksum))
+    (define string-list (list->string char_list))
+    (string-append bech32_bitcoin_prefix "1" string-list))
 
 (define (pub_to_compressed pub)
     ; pub parameter no prefix 
@@ -104,6 +120,9 @@
             bitcoin_pubkeyprefix_even
             bitcoin_pubkeyprefix_odd))
     (string-append prefix x))
+
+(define (pubhex_to_pubschnorr pub)
+    (substring pub 0 64))
 
 (define (pubkey_to_compressed pubkey)
     (pub_to_compressed (substring pubkey 2)))
@@ -132,11 +151,14 @@
         [(#\5) pk]
         [else (error "wrong format for wif")]))
 
-(define (private_to_pubkey pk #:compressed [compressed #t])
+(define (private_to_pubkey pk #:compressed [compressed #t] #:version [version 1]) ; pk in hex format string
+    (when (and (not (= version 0)) (equal? compressed #f)) (error "pubkeys can only be compressed in version 0"))
     (define pub_val (priv_to_pub pk))
-    (if compressed
-        (pub_to_compressed pub_val)
-        (string-append bitcoin_pubkeyprefix pub_val)))
+    (if (= version 0)
+        (if compressed
+            (pub_to_compressed pub_val)
+            (string-append bitcoin_pubkeyprefix pub_val))
+        (pubhex_to_pubschnorr pub_val)))
 
 (define (pubkey_to_P2PK pubkey)
     (define pushdata_val (pushdataval pubkey))
@@ -189,15 +211,39 @@
     (define address (string-append bitcoin_addrprefix_scripthash (hash160 script)))
     (base58check_encode (string-append address (generate_checksum address))))
 
-(define (pubkey_to_bech32 pub) ; compressed pubkey is mandatory
-    (define hash160_val (hash160 pub))
-    (define hex5bit (hexbytes_to_hex5bit hash160_val))
-    (define val_list (cons 0 hex5bit))
-    (define checksum (generate_checksum_bech32 val_list))
-    (define list_and_checksum (append val_list checksum))
-    (define char_list (map (lambda (nb) (string-ref bech32chars nb)) list_and_checksum))
-    (define string-list (list->string char_list))
-    (string-append bech32_bitcoin_prefix "1" string-list))
+(define (pubkey_to_bech32 pub #:version [version 1]) ; compressed pubkey is mandatory
+    (define val_to_encode 
+        (if (= version 0) 
+            (hash160 pub)
+            pub))
+    ;(define hash160_val pub)
+    (bech32_encode val_to_encode #:version version))
+
+(define (private_to_bech32 pk #:version [version 1])
+    (define pub (private_to_pubkey pk #:version version)) ; compressed keys are mandatory
+    (pubkey_to_bech32 pub #:version version))
+
+;internal_key:       lift_x(KEY)
+;32_byte_output_key: internal_key + int(HashTapTweak(bytes(internal_key)))G
+
+(define (tweak_pubkey pub h) ;  pub as a x-only public key in hex format, h as a hexstring
+    (define Point (lift_x (string->number pub 16))) ; works
+    (define hashhex (tagged_hash "TapTweak" (string-append pub h)))
+    (define hashval (string->number hashhex 16)) ; works
+    (when (>= hashval N) (error "value is superior to the order of the curve"))
+    (define Q (add_point Point (rmul_point G hashval))) ; tweak of the public key
+    ; convert Q to hex (only the x part)
+    (define Qx (pub_to_pubschnorr Q))
+    Qx)
+
+(define (pubkey_to_bech32taproot pub) ; pub as a x-only public key in hex format
+    (define Qx (tweak_pubkey pub "")) ; tweak pubkey with a "NULL" value
+    ; convert to bech32
+    (pubkey_to_bech32 Qx))
+
+(define (private_to_bech32taproot pk)
+    (define pub (private_to_pubkey pk))
+    (pubkey_to_bech32taproot pub))
 
 (provide base58check_encode
          base58check_decode
@@ -213,6 +259,7 @@
          pubkey_to_pubkeyhash
          private_to_pubkeyhash
          pub_to_compressed
+         pubhex_to_pubschnorr
          pubkey_to_compressed
          pubkey_to_P2PK
          pubkey_to_P2MS1of1
@@ -223,5 +270,10 @@
          pubkey_to_nestedpubkeyhash
          split5part
          hexbytes_to_hex5bit
-         pubkey_to_bech32)
+         pubkey_to_bech32
+         private_to_bech32
+         tweak_pubkey
+         pubkey_to_bech32taproot
+         private_to_bech32taproot
+         bech32_encode)
 
