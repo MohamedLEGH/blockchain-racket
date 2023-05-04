@@ -152,12 +152,17 @@
 ;;    Fail if is_infinite(R).
 ;;    Fail if not has_even_y(R).
 ;;    Fail if x(R) ≠ r.
-  (when (equal? R I) (error "R is infinite"))
-  (when (= (modulo (field-element-value (point-y R)) 2) 1) (error "y(R) is odd"))
-  (define r_compute (field-element-value (point-x R)))
-  (when (not (equal? r_compute r)) (error "x(R) is not equal to r"))
+  ;(when (equal? R I) (error "R is infinite"))
+  ;(when (= (modulo (field-element-value (point-y R)) 2) 1) (error "y(R) is odd"))
+  ;(when (not (equal? r_compute r)) (error "x(R) is not equal to r"))
 ;;   Return success iff no failure occurred before reaching this point.
-  #t)
+  (define r_compute (field-element-value (point-x R)))
+  (cond [(equal? R I) #f]
+        [(= (modulo (field-element-value (point-y R)) 2) 1) #f]
+        [(not (equal? r_compute r)) #f]
+        [else #t]
+  ))
+
 
 (define (pub_to_pubschnorr pub) ; take a public point and return a hexstring of the x value
   (~r (field-element-value (point-x pub)) #:base 16 #:min-width 64 #:pad-string "0"))
@@ -269,6 +274,61 @@
 (define z4 (generate_random)) ; just a random message
 (define sig4 (sign_schnorr e4 z4))
 (verify_schnorr sig4 pub4 z4)
+
+;# Test case 5: verify Schnorr
+;0, index 
+;0000000000000000000000000000000000000000000000000000000000000003, secret key
+;F9308A019258C31049344F85F89D5229B531C845836F99B08601F113BCE036F9, public key
+;0000000000000000000000000000000000000000000000000000000000000000, aux_rand
+;0000000000000000000000000000000000000000000000000000000000000000, message
+;E907831F80848D1069A5371B402410364BDF1C5F8307B0084C55F1CE2DCA821525F66A4A85EA8B71E482A74F382D2CE5EBEEE8FDB2172F477DF4900D310536C0, signature
+;TRUE, verification result
+(define e5 #x0000000000000000000000000000000000000000000000000000000000000003) ; a private key is just a random number
+(define pub5 "F9308A019258C31049344F85F89D5229B531C845836F99B08601F113BCE036F9") ; G*e to get the public key
+(define z5 #x0000000000000000000000000000000000000000000000000000000000000000) ; just a random message
+(define sig5_compute (sign_schnorr e5 z5))
+(define sig5 "E907831F80848D1069A5371B402410364BDF1C5F8307B0084C55F1CE2DCA821525F66A4A85EA8B71E482A74F382D2CE5EBEEE8FDB2172F477DF4900D310536C0")
+(verify_schnorr sig5 pub5 z5)
+(verify_schnorr sig5_compute pub5 z5)
+
+;# Test case 5.1: false signature s
+
+(define sig5bis "E807831F80848D1069A5371B402410364BDF1C5F8307B0084C55F1CE2DCA821525F66A4A85EA8B71E482A74F382D2CE5EBEEE8FDB2172F477DF4900D310536C0")
+(equal? (verify_schnorr sig5bis pub5 z5) #f)
+
+;# Test case 5.2: false message
+
+(define z5bis
+  #xEC208BAA0FC1C29F708A9CA96FDEFF3AC3F230BB4A7BA4AEDE4942AD003C0F60)
+
+(equal? (verify_schnorr sig5 pub5 z5bis) #f)
+
+;# Test case 5.3: false pub key x
+
+(define pub5bis
+  (point (field-element
+          #x887386E452B8EACC4ACFDE10D9AAF7F6D9A0F975AABB10D006E4DA568744D06C
+          P)
+         (field-element
+          #x61DE6D95231CD89026E286DF3B6AE4A894A3378E393E93A0F45B666329A0AE34
+          P)
+         secp256k1))
+(define pub5bis_val (pub_to_pubschnorr pub5bis)) ;
+(equal? (verify_schnorr sig5 pub5bis_val z5) #f)
+
+;# Test case 5.4: false pub key y
+
+(define pub5bisbis
+  (point (field-element
+          #x887387E452B8EACC4ACFDE10D9AAF7F6D9A0F975AABB10D006E4DA568744D06C
+          P)
+         (field-element
+          #x61DE6D94231CD89026E286DF3B6AE4A894A3378E393E93A0F45B666329A0AE34
+          P)
+         secp256k1))
+(define pub5bisbis_val (pub_to_pubschnorr pub5bisbis)) ;
+
+(equal? (verify_schnorr sig5 pub5bisbis_val z5) #f)
 
 
 (provide (struct-out signature)
