@@ -23,7 +23,7 @@
                                      (field-element-value fe2)))
                  (field-element-field fe1)))
 
-(define (rmul_element fe1 scalar)
+(define (rmul_element fe1 scalar) ; should use mul*
   (field-element (modulo (* (field-element-value fe1) scalar)
                          (field-element-field fe1))
                  (field-element-field fe1)))

@@ -17,8 +17,7 @@
 	* Storage of the mempool of transactions ?
 	
 * Adding wallet
-	* Compressed keys
-	* others format for bitcoin keys
+	* format for taproot address
 	* Store the private key in a file
 
 #NICE TO HAVE
@@ -34,7 +33,9 @@
 #DONE
 
 * ECDSA cryptography
+	* Compressed keys
 * Bitcoin format for pubkeys
+	* others format for bitcoin keys
 
 # Clean code
 
