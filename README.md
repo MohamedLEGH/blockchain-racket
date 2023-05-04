@@ -17,7 +17,7 @@
 	* Storage of the mempool of transactions ?
 	
 * Adding wallet
-	* format for taproot address
+	* Cleaning code
 	* Store the private key in a file
 
 #NICE TO HAVE
@@ -29,6 +29,8 @@
 * Adding Merkle tree storage
 
 * Adding repl when connecting to node
+
+* HD wallet
 
 #DONE
 

@@ -22,7 +22,8 @@
 (struct point (x y curve) #:prefab)
 
 (define (point_to_string point_val)
-  (string-append (field_to_string (point-x point_val)) (field_to_string (point-y point_val))))
+  (string-append (field_to_string (point-x point_val))
+                 (field_to_string (point-y point_val))))
 
 (define (on_curve? point_val ec)
   (define x (point-x point_val))
@@ -85,7 +86,7 @@
      ; y3 = s * (x1 - x3) - y1
      (define y3 (sub_element (mul_element s (sub_element x1 x3)) y1))
      (point x3 y3 secp256k1)]
-     [else (error "cannot add the 2 points on the curve")]))
+    [else (error "cannot add the 2 points on the curve")]))
 
 (define (binary_expansion value scalar)
   (cond
