@@ -1,7 +1,8 @@
 #lang racket
 (require rackunit
          rackunit/text-ui
-         "../crypto.rkt"
+         "../crypto-utils.rkt"
+         "../schnorr.rkt"
          "../curve.rkt"
          "../field.rkt")
 
@@ -11,7 +12,8 @@
    (let ()
      (define e4 (generate_random)) ; a private key is just a random number
      (define pub4
-       (pub_to_pubschnorr (rmul_point G e4))) ; G*e to get the public key
+       (point_to_pubschnorr_string
+        (rmul_point G e4))) ; G*e to get the public key
      (define z4 (generate_random)) ; just a random message
      (define sig4 (sign_schnorr e4 z4))
      (test-case "# Test case 4: sign and verify Schnorr"
@@ -61,7 +63,7 @@
          #x61DE6D95231CD89026E286DF3B6AE4A894A3378E393E93A0F45B666329A0AE34
          P)
         secp256k1))
-     (define pub53_val (pub_to_pubschnorr pub53)) ;
+     (define pub53_val (point_to_pubschnorr_string pub53)) ;
 
      (test-case "# Test case 5.3: false pub key x"
                 (check-false (verify_schnorr sig5 pub53_val z5)))
@@ -75,7 +77,7 @@
          #x61DE6D94231CD89026E286DF3B6AE4A894A3378E393E93A0F45B666329A0AE34
          P)
         secp256k1))
-     (define pub5bisbis_val (pub_to_pubschnorr pub5bisbis)) ;
+     (define pub5bisbis_val (point_to_pubschnorr_string pub5bisbis)) ;
 
      (test-case "# Test case 5.4: false pub key y"
                 (check-false (verify_schnorr sig5 pub5bisbis_val z5))))))

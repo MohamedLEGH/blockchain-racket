@@ -1,5 +1,5 @@
 #lang racket
-(require sha)
+(require sha) ; should replace sha with crypto based sha256_hex
 (require "transaction.rkt")
 
 ; need to add reward ??

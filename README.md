@@ -21,8 +21,7 @@
 	* Store the private key in a file
 
 #NICE TO HAVE
-
-* Test suite
+* Test suite for all files
 
 * Reformat wallet to have a big private_to_address function
 
@@ -37,6 +36,8 @@
 * HD wallet
 
 #DONE
+
+* Test suite for crypto components
 
 * ECDSA cryptography
 	* Compressed keys

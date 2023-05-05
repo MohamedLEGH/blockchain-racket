@@ -1,5 +1,4 @@
 #lang racket
-(require json)
 ; need to add verif tx
 (struct tx (sender receiver value) #:prefab)
 

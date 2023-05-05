@@ -5,70 +5,9 @@
 (crypto-factories (list libcrypto-factory))
 (require "field.rkt")
 (require "curve.rkt")
-
-(define (generate_random)
-  (define p
-    (for/fold ([result 0]) ([byte (in-bytes (crypto-random-bytes 32))])
-      (+ byte (* result 256))))
-  ; the random number need to be inferior to N (the order of the curve)
-  ; if it's not the case (small probability), recompute a random number
-  (if (and (< p N) (> p 0)) p (generate_random)))
-
-(define (priv_to_pub pk) ; pk in hexa string format
-  (point_to_string (rmul_point G (string->number pk 16))))
-
-(struct signature (r s)) ; should check if signature is the same in bitcoin
-
-(define (signature->jsexpr sig_val)
-  (hash 'r (signature-r sig_val) 's (signature-s sig_val)))
-
-(define (signature->string tx_val)
-  (string-append (number->string (signature-r tx_val))
-                 (number->string (signature-s tx_val))))
-
-(define (sign pk msg) ; should check if siging is the same in bitcoin
-  (define k (generate_random))
-  (define R (rmul_point G k))
-  (define r_val (field-element-value (point-x R)))
-  (define s_val (with-modulus N (mod/ (+ msg (* r_val pk)) k)))
-  (signature r_val s_val))
-
-(define (verify sig
-                pub
-                msg) ; should check if verify signature is the same in bitcoin
-  ; sig is type signature
-  ; pub is a public point
-  ; msg is an int
-  (define s_val (signature-s sig))
-  (define r_val (signature-r sig))
-  (define u (with-modulus N (mod/ msg s_val)))
-  (define v (with-modulus N (mod/ r_val s_val)))
-  (define r_compute
-    (field-element-value
-     (point-x (add_point (rmul_point G u) (rmul_point pub v)))))
-  (equal? r_compute r_val))
-
-(define (sha256_hex value)
-  (bytes->hex-string (digest 'sha256 (hex->bytes value))))
-
-(define (ripemd160_hex value)
-  (bytes->hex-string (digest 'ripemd160 (hex->bytes value))))
-
-(define (doublesha256 value)
-  (sha256_hex (sha256_hex value)))
-
-(define (hash160 value)
-  (ripemd160_hex (sha256_hex value)))
+(require "crypto-utils.rkt")
 
 ;; for Schnorr signatures
-
-(define (tagged_hash tag value)
-  (define tag_digest
-    (bytes->hex-string (digest 'sha256
-                               (string->bytes/utf-8
-                                tag)))) ; the tag is a utf-8 string value
-  (define preimage (string-append tag_digest tag_digest value))
-  (sha256_hex preimage))
 
 (define (sign_schnorr pk msg) ; pk and msg should be integers
   (define msg_hex (~r msg #:base 16 #:min-width 64 #:pad-string "0"))
@@ -168,26 +107,25 @@
     [(not (equal? r_compute r)) #f]
     [else #t]))
 
-(define (pub_to_pubschnorr
-         pub) ; take a public point and return a hexstring of the x value
-  (~r (field-element-value (point-x pub))
-      #:base 16
-      #:min-width 64
-      #:pad-string "0"))
+(define (tweak_pubkey
+         pubkey
+         h) ;  pub as a x-only public key in hex format, h as a hexstring
+  (define Point (lift_x (string->number pubkey 16))) ; works
+  (define hashhex (tagged_hash "TapTweak" (string-append pubkey h)))
+  (define hashval (string->number hashhex 16)) ; works
+  (when (>= hashval N)
+    (error "value is superior to the order of the curve"))
+  (define Q (add_point Point (rmul_point G hashval))) ; tweak of the public key
+  ; convert Q to hex (only the x part)
+  (define Qx (point_to_pubschnorr_string Q))
+  Qx)
 
-(provide (struct-out signature)
-         signature->jsexpr
-         signature->string
-         generate_random
-         priv_to_pub
-         sign
-         verify
-         sha256_hex
-         ripemd160_hex
-         doublesha256
-         hash160
-         tagged_hash
-         sign_schnorr
+(define (point_to_pubschnorr_string
+         pub) ; take a public point and return a hexstring of the x value
+  (substring (point_to_string pub) 0 64))
+
+(provide sign_schnorr
          lift_x
          verify_schnorr
-         pub_to_pubschnorr)
+         tweak_pubkey
+         point_to_pubschnorr_string)

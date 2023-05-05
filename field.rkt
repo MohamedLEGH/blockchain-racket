@@ -4,7 +4,10 @@
 (struct field-element (value field) #:prefab)
 
 (define (field_to_string field_val)
-  (number->string (field-element-value field_val) 16))
+  (~r (field-element-value field_val)
+      #:base 16
+      #:min-width 64
+      #:pad-string "0"))
 
 (define (in_field? value field)
   (and (<= 0 value) (< value field)))
@@ -23,9 +26,9 @@
                                      (field-element-value fe2)))
                  (field-element-field fe1)))
 
-(define (rmul_element fe1 scalar) ; should use mul*
-  (field-element (modulo (* (field-element-value fe1) scalar)
-                         (field-element-field fe1))
+(define (rmul_element fe1 scalar)
+  (field-element (with-modulus (field-element-field fe1)
+                               (mod* (field-element-value fe1) scalar))
                  (field-element-field fe1)))
 
 (define (mul_element fe1 fe2)

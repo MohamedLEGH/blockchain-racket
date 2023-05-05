@@ -51,7 +51,6 @@
 
 (define (add_point point1 point2)
   ; TODO: check if points are on the curve
-  ; TODO: add else clause : error
 
   (cond
     [(equal? point1 I) point2]
@@ -99,21 +98,6 @@
 (define (rmul_point value scalar)
   ; TODO: check if point are on the curve
   (binary_expansion value scalar))
-
-;; add test with assert G*e = p2
-
-(define p2
-  (point (field-element
-          #x9577FF57C8234558F293DF502CA4F09CBC65A6572C842B39B366F21717945116
-          P)
-         (field-element
-          #x10B49C67FA9365AD7B90DAB070BE339A1DAF9052373EC30FFAE4F72D5E66D053
-          P)
-         secp256k1))
-
-(define e (+ (expt 2 240) (expt 2 31)))
-
-(equal? (rmul_point G e) p2)
 
 (provide (struct-out elliptic-curve)
          (struct-out point)
