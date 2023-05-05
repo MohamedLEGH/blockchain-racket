@@ -184,18 +184,14 @@
   (define pushdata_val (pushdataval pubkey))
   (string-append pushdata_val pubkey OP_CHECKSIG))
 
-(define (pubkey_to_P2MS1of1 pubkey)
-  (define pushdata_val (pushdataval pubkey))
-  (string-append OP_1 pushdata_val pubkey OP_1 OP_CHECKMULTISIG))
-
 (define (pubkey_to_pubkeyhash pubkey)
   (define pubkeyhash (string-append bitcoin_addrprefix (hash160 pubkey)))
   (define checksum (generate_checksum pubkeyhash))
   (define pubkeyhash_with_checksum (string-append pubkeyhash checksum))
   (base58check_encode pubkeyhash_with_checksum))
 
-(define (private_to_pubkeyhash pk)
-  (define pubkey (private_to_pubkey pk))
+(define (private_to_pubkeyhash pk #:compressed [compressed #t])
+  (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
   (pubkey_to_pubkeyhash pubkey))
 
 (define (pubkeyhashbase58_to_pubkeyhashhex
@@ -227,12 +223,9 @@
     (string-append bitcoin_addrprefix_scripthash (hash160 script)))
   (base58check_encode (string-append address (generate_checksum address))))
 
-(define (pubkey_to_scrithash1of1musig
-         pubkey) ; pubkey in hex format with pubkey prefix
-  (define script (pubkey_to_P2MS1of1 pubkey))
-  (define address
-    (string-append bitcoin_addrprefix_scripthash (hash160 script)))
-  (base58check_encode (string-append address (generate_checksum address))))
+(define (private_to_pubkeyscripthash pk #:compressed [compressed #t])
+  (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
+  (pubkey_to_pubkeyscripthash pubkey))
 
 (define (pubkey_to_nestedpubkeyhash pubkey) ; compressed key is mandatory
   (define hash160_val (hash160 pubkey))
@@ -242,11 +235,14 @@
     (string-append bitcoin_addrprefix_scripthash (hash160 script)))
   (base58check_encode (string-append address (generate_checksum address))))
 
+(define (private_to_nestedpubkeyhash pk #:compressed [compressed #t])
+  (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
+  (pubkey_to_nestedpubkeyhash pubkey))
+
 (define (pubkey_to_bech32
-         pub
+         pubkey
          #:version [version 1]) ; compressed pubkey is mandatory
-  (define val_to_encode (if (= version 0) (hash160 pub) pub))
-  ;(define hash160_val pub)
+  (define val_to_encode (if (= version 0) (hash160 pubkey) pubkey))
   (bech32_encode val_to_encode #:version version))
 
 (define (private_to_bech32 pk #:version [version 1])
@@ -254,14 +250,11 @@
     (private_to_pubkey pk #:version version)) ; compressed keys are mandatory
   (pubkey_to_bech32 pub #:version version))
 
-;internal_key:       lift_x(KEY)
-;32_byte_output_key: internal_key + int(HashTapTweak(bytes(internal_key)))G
-
 (define (tweak_pubkey
-         pub
+         pubkey
          h) ;  pub as a x-only public key in hex format, h as a hexstring
-  (define Point (lift_x (string->number pub 16))) ; works
-  (define hashhex (tagged_hash "TapTweak" (string-append pub h)))
+  (define Point (lift_x (string->number pubkey 16))) ; works
+  (define hashhex (tagged_hash "TapTweak" (string-append pubkey h)))
   (define hashval (string->number hashhex 16)) ; works
   (when (>= hashval N)
     (error "value is superior to the order of the curve"))
@@ -270,8 +263,9 @@
   (define Qx (pub_to_pubschnorr Q))
   Qx)
 
-(define (pubkey_to_bech32taproot pub) ; pub as a x-only public key in hex format
-  (define Qx (tweak_pubkey pub "")) ; tweak pubkey with a "NULL" value
+(define (pubkey_to_bech32taproot
+         pubkey) ; pub as a x-only public key in hex format
+  (define Qx (tweak_pubkey pubkey "")) ; tweak pubkey with a "NULL" value
   ; convert to bech32
   (pubkey_to_bech32 Qx))
 
@@ -296,12 +290,12 @@
          pubhex_to_pubschnorr
          pubkey_to_compressed
          pubkey_to_P2PK
-         pubkey_to_P2MS1of1
          pubkeyhashbase58_to_pubkeyhashhex
          pubkeyhash_to_P2PKH
          pubkey_to_pubkeyscripthash
-         pubkey_to_scrithash1of1musig
+         private_to_pubkeyscripthash
          pubkey_to_nestedpubkeyhash
+         private_to_nestedpubkeyhash
          split5part
          hexbytes_to_hex5bit
          pubkey_to_bech32

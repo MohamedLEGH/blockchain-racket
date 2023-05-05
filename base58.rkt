@@ -25,10 +25,9 @@
   (define (base58dec acc power val)
     (if (equal? val '())
         acc
-        (base58dec
-         (+ (* (index-of code_list (car val)) (expt base power)) acc)
-         (+ power 1)
-         (cdr val))))
+        (base58dec (+ (* (index-of code_list (car val)) (expt base power)) acc)
+                   (+ power 1)
+                   (cdr val))))
   (base58dec 0 0 reverse_l))
 
 (provide base58encode

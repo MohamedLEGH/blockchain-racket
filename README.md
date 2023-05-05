@@ -22,6 +22,10 @@
 
 #NICE TO HAVE
 
+* Test suite
+
+* Reformat wallet to have a big private_to_address function
+
 * Cypher the file where the private key is stored (with a password)
 
 * Adding gossip protocol for message propagation
