@@ -1,7 +1,7 @@
 #lang racket
+(require base58check)
 (require "crypto-utils.rkt")
 (require "schnorr.rkt")
-(require "base58check.rkt")
 (require "bech32.rkt")
 
 ;; ALL VALUES ARE IN HEXA
