@@ -9,13 +9,14 @@
 ; used in bech32 format, take a str with binary data, return list of 5bytes str
 (define (split5part str)
   (define (split5 lst acc)
-    (cond 
+    (cond
       [(= (length lst) 0) acc]
-      [(< (length lst) 5) (cons lst acc)] 
+      [(< (length lst) 5) (cons lst acc)]
       [else (split5 (list-tail lst 5) (cons (take lst 5) acc))]))
   (define list_split5 (split5 (string->list str) '()))
   (define list_string (map list->string list_split5))
-  (define (pad_str str) (~a str #:min-width 5 #:pad-string "0"))
+  (define (pad_str str)
+    (~a str #:min-width 5 #:pad-string "0"))
   (define list_str (list-update list_string 0 pad_str))
   (reverse list_str))
 
@@ -39,28 +40,35 @@
   (define right_val (map (lambda (nb) (bitwise-and nb 31)) char_val))
   (append left_val '(0) right_val))
 
-(define (bech32_polymod values) ; values in list of int
+(define (bech32_polymod values) ; values is a list of int
   (define GEN '(#x3b6a57b2 #x26508e6d #x1ea119fa #x3d4233dd #x2a1462b3))
   (define chk 1)
-  (define (compute_chk_gen chk_val gen_val inc b_val)
-    (bitwise-xor chk_val
-      (if (= (bitwise-and (arithmetic-shift b_val (- inc)) 1) 1)
-          gen_val
-          0)))
+  (define (chk_xor_gen chk_val gen_val inc b_val)
+    (bitwise-xor
+     chk_val
+     (if (= (bitwise-and (arithmetic-shift b_val (- inc)) 1) 1) gen_val 0)))
   (define (update_chk_value chk value)
     (define b_val (arithmetic-shift chk -25))
     (define (update_chk_with_GEN gen acc inc)
       (if (equal? gen '())
-        acc
-        (update_chk_with_GEN (cdr gen) (compute_chk_gen acc (car gen) inc b_val) (+ 1 inc))))
-    (update_chk_with_GEN GEN (bitwise-xor (arithmetic-shift (bitwise-and chk #x1ffffff) 5) value) 0))
-  (define (polymod_shift values_list acc)
+          acc
+          (update_chk_with_GEN (cdr gen)
+                               (chk_xor_gen acc (car gen) inc b_val)
+                               (+ 1 inc))))
+    (update_chk_with_GEN
+     GEN
+     (bitwise-xor (arithmetic-shift (bitwise-and chk #x1ffffff) 5) value)
+     0))
+  (define (polymod_compute values_list acc)
     (if (equal? values_list '())
-      acc
-      (polymod_shift (cdr values_list) (update_chk_value acc (car values_list)))))
-  (polymod_shift values chk))
+        acc
+        (polymod_compute (cdr values_list)
+                         (update_chk_value acc (car values_list)))))
+  (polymod_compute values chk))
 
-(define (generate_checksum_bech32 val #:version [version 1] #:hrp [hrp bech32_bitcoin_prefix])
+(define (generate_checksum_bech32 val
+                                  #:version [version 1]
+                                  #:hrp [hrp bech32_bitcoin_prefix])
   (define values (append (expandhrp hrp) val))
   (define const_val (if (= version 0) BECH32_CONST BECH32M_CONST))
   (define polymod

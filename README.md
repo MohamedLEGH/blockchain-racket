@@ -49,8 +49,6 @@
 * Bitcoin format for pubkeys
 	* others format for bitcoin keys
 
-# Clean code
-
 ## Formatter
 raco fmt -i --width 80 *.rkt
 
