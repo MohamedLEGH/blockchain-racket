@@ -15,6 +15,9 @@
 (define (pad_int_binarystr int_val pad_val)
   (~r int_val #:base 2 #:min-width pad_val #:pad-string "0"))
 
+(define (pad_int_hexstr int_val pad_val)
+  (~r int_val #:base 16 #:min-width pad_val #:pad-string "0"))
+
 ; used in bech32 format, take a str with binary data, return list of nb bytes str
 (define (splitnbpart str nb)
   (define (splitnb lst acc)
@@ -148,7 +151,7 @@
       [(= (string-length (last splitlist)) 8) splitlist]
       [(and (<= (string-length (last splitlist)) 4)
             (equal? (last splitlist)
-                    (make-string (length (last splitlist)) #\0)))
+                    (make-string (string-length (last splitlist)) #\0)))
        (drop-right splitlist 1)]
       [else
        (error
@@ -159,7 +162,8 @@
   (when (or (< (length intlistnew) 2) (> (length intlistnew) 40))
     (error "not a valid bech32: number of groups invalid [2:40]"))
   ; convert the int into a hex str
-  (define hexlist (map (lambda (nb) (number->string nb 16)) intlistnew))
+  ; each hexstr should be of size 2 char
+  (define hexlist (map (lambda (nb) (pad_int_hexstr nb 2)) intlistnew))
   ; concat the hex
   (define concac_hex (string-append* hexlist))
   concac_hex)
