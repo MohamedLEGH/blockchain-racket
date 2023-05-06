@@ -48,7 +48,7 @@
 (define (pubkey_to_compressed pubkey)
   (pub_to_compressed (substring pubkey 2)))
 
-(define (generate_checksum key)
+(define (generate_checksum_base58 key)
   (substring (doublesha256 key) 0 8))
 
 (define (private_to_wif
@@ -58,11 +58,19 @@
     (if (equal? compressed #t)
         (string-append bitcoin_wifprefix pk bitcoin_wifsufix_compressed)
         (string-append bitcoin_wifprefix pk)))
-  (define checksum (generate_checksum pk_with_prefix))
+  (define checksum (generate_checksum_base58 pk_with_prefix))
   (define pk_with_checksum (string-append pk_with_prefix checksum))
   (base58check_encode pk_with_checksum))
 
+(define (validate_checksum_base58 base58address)
+    (define hash (base58check_decode base58address))
+    (define l_hash (string-length hash))
+    (define data (substring hash 0 (- l_hash 8)))
+    (define checksum (substring hash (- l_hash 8)))
+    (equal? (generate_checksum_base58 data) checksum))
+
 (define (wif_to_private wif)
+  (when (not (validate_checksum_base58 wif)) (error "checksum of the wif is not valid"))
   (define prefix (string-ref wif 0))
   (define wif_hex (base58check_decode wif))
   (define l_wif (string-length wif_hex))
@@ -92,7 +100,7 @@
 
 (define (pubkey_to_pubkeyhash pubkey)
   (define pubkeyhash (string-append bitcoin_addrprefix (hash160 pubkey)))
-  (define checksum (generate_checksum pubkeyhash))
+  (define checksum (generate_checksum_base58 pubkeyhash))
   (define pubkeyhash_with_checksum (string-append pubkeyhash checksum))
   (base58check_encode pubkeyhash_with_checksum))
 
@@ -102,11 +110,13 @@
 
 (define (pubkeyhashbase58_to_pubkeyhashhex
          pubkeyhash) ; from base58 format to hex format of hash160(pubkey)
+  (when (not (validate_checksum_base58 pubkeyhash)) (error "checksum of the address is not valid"))
   (define hexa_val (base58check_decode pubkeyhash))
   (define hexa_val_l (string-length hexa_val))
   (define val_no_checksum (substring hexa_val 0 (- hexa_val_l 8)))
   (define val_no_prefix (substring val_no_checksum 2))
   val_no_prefix)
+
 ; La scriptPubKey dans P2PKH est la suivante :
 ; OP_DUP OP_HASH160 <hash de clé publique> OP_EQUALVERIFY OP_CHECKSIG
 ;scriptPubKey: OP_HASH160 [20-byte-hash of {[pubkey] OP_CHECKSIG} ] OP_EQUAL
@@ -127,7 +137,7 @@
   (define script (pubkey_to_P2PK pubkey))
   (define address
     (string-append bitcoin_addrprefix_scripthash (hash160 script)))
-  (base58check_encode (string-append address (generate_checksum address))))
+  (base58check_encode (string-append address (generate_checksum_base58 address))))
 
 (define (private_to_pubkeyscripthash pk #:compressed [compressed #t])
   (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
@@ -139,7 +149,7 @@
   (define script (string-append OP_0 pushdata_val hash160_val))
   (define address
     (string-append bitcoin_addrprefix_scripthash (hash160 script)))
-  (base58check_encode (string-append address (generate_checksum address))))
+  (base58check_encode (string-append address (generate_checksum_base58 address))))
 
 (define (private_to_nestedpubkeyhash pk #:compressed [compressed #t])
   (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
@@ -166,7 +176,8 @@
   (define pub (private_to_pubkey pk))
   (pubkey_to_bech32taproot pub))
 
-(provide generate_checksum
+(provide generate_checksum_base58
+         validate_checksum_base58
          generate_pk
          private_to_wif
          wif_to_private
