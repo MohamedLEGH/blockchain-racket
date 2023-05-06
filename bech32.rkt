@@ -2,15 +2,15 @@
 (require racket/list)
 
 ; bech32 constants
-(define bech32_bitcoin_prefix "bc")
-(define bech32_testnet_prefix "tb")
+(define bech32_bitcoin_hrp "bc")
+(define bech32_testnet_hrp "tb")
 (define bech32_separator "1")
 (define bech32chars "qpzry9x8gf2tvdw0s3jn54khce6mua7l")
 (define BECH32_CONST 1)
 (define BECH32M_CONST #x2bc830a3)
 
-(define (pad_str str_val nb)
-  (~a str_val #:min-width nb #:pad-string "0"))
+(define (pad_str str_val)
+  (~a str_val #:min-width 5 #:pad-string "0"))
 
 (define (pad_int_binarystr int_val pad_val)
   (~r int_val #:base 2 #:min-width pad_val #:pad-string "0"))
@@ -76,7 +76,7 @@
 
 (define (generate_checksum_bech32 val
                                   #:version [version 1]
-                                  #:hrp [hrp bech32_bitcoin_prefix])
+                                  #:hrp [hrp bech32_bitcoin_hrp])
   (define values (append (expandhrp hrp) val))
   (define const_val (if (= version 0) BECH32_CONST BECH32M_CONST))
   (define polymod
@@ -86,15 +86,18 @@
    (lambda (i) (bitwise-and (arithmetic-shift polymod (- (* 5 (- 5 i)))) 31))
    checksum))
 
-(define (bech32_encode hashval #:version [version 1]) ; take a hashvalue
+(define (bech32_encode hashval
+                       #:version [version 1]
+                       #:hrp [hrp bech32_bitcoin_hrp]) ; take a hashvalue
   (define hex5bit (hexbytes_to_hex5bit hashval))
   (define val_list (cons version hex5bit)) ; witness version
-  (define checksum (generate_checksum_bech32 val_list #:version version))
+  (define checksum
+    (generate_checksum_bech32 val_list #:version version #:hrp hrp))
   (define list_and_checksum (append val_list checksum))
   (define char_list
     (map (lambda (nb) (string-ref bech32chars nb)) list_and_checksum))
   (define string-list (list->string char_list))
-  (string-append bech32_bitcoin_prefix bech32_separator string-list))
+  (string-append hrp bech32_separator string-list))
 
 (define (bech32_recompute_checksum hrp bech32_intlist)
   (define const (bech32_polymod (append (expandhrp hrp) bech32_intlist)))
@@ -113,10 +116,12 @@
              (not (equal? bech32_str (string-upcase bech32_str))))
     (error "mixed case strings are not allowed"))
   (define bech32_string (string-downcase bech32_str))
-  (define hrp_compute (substring bech32_string 0 2))
+  (define hrp_compute
+    (car (string-split bech32_string "1"))) ; hrp end with the "1" caracter
   ; MUST verify that the human-readable part is "bc" for mainnet and "tb" for testnet.
-  (when (and (not (equal? hrp_compute bech32_bitcoin_prefix))
-             (not (equal? hrp_compute bech32_testnet_prefix)))
+  ; you can adapt this for another network (for example litecoin)
+  (when (and (not (equal? hrp_compute bech32_bitcoin_hrp))
+             (not (equal? hrp_compute bech32_testnet_hrp)))
     (error "not a valid hrp"))
   (define separator_compute (substring bech32_string 2 3))
   (when (not (equal? separator_compute bech32_separator))

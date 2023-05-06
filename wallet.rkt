@@ -63,14 +63,15 @@
   (base58check_encode pk_with_checksum))
 
 (define (validate_checksum_base58 base58address)
-    (define hash (base58check_decode base58address))
-    (define l_hash (string-length hash))
-    (define data (substring hash 0 (- l_hash 8)))
-    (define checksum (substring hash (- l_hash 8)))
-    (equal? (generate_checksum_base58 data) checksum))
+  (define hash (base58check_decode base58address))
+  (define l_hash (string-length hash))
+  (define data (substring hash 0 (- l_hash 8)))
+  (define checksum (substring hash (- l_hash 8)))
+  (equal? (generate_checksum_base58 data) checksum))
 
 (define (wif_to_private wif)
-  (when (not (validate_checksum_base58 wif)) (error "checksum of the wif is not valid"))
+  (when (not (validate_checksum_base58 wif))
+    (error "checksum of the wif is not valid"))
   (define prefix (string-ref wif 0))
   (define wif_hex (base58check_decode wif))
   (define l_wif (string-length wif_hex))
@@ -110,7 +111,8 @@
 
 (define (pubkeyhashbase58_to_pubkeyhashhex
          pubkeyhash) ; from base58 format to hex format of hash160(pubkey)
-  (when (not (validate_checksum_base58 pubkeyhash)) (error "checksum of the address is not valid"))
+  (when (not (validate_checksum_base58 pubkeyhash))
+    (error "checksum of the address is not valid"))
   (define hexa_val (base58check_decode pubkeyhash))
   (define hexa_val_l (string-length hexa_val))
   (define val_no_checksum (substring hexa_val 0 (- hexa_val_l 8)))
@@ -137,7 +139,8 @@
   (define script (pubkey_to_P2PK pubkey))
   (define address
     (string-append bitcoin_addrprefix_scripthash (hash160 script)))
-  (base58check_encode (string-append address (generate_checksum_base58 address))))
+  (base58check_encode
+   (string-append address (generate_checksum_base58 address))))
 
 (define (private_to_pubkeyscripthash pk #:compressed [compressed #t])
   (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
@@ -149,7 +152,8 @@
   (define script (string-append OP_0 pushdata_val hash160_val))
   (define address
     (string-append bitcoin_addrprefix_scripthash (hash160 script)))
-  (base58check_encode (string-append address (generate_checksum_base58 address))))
+  (base58check_encode
+   (string-append address (generate_checksum_base58 address))))
 
 (define (private_to_nestedpubkeyhash pk #:compressed [compressed #t])
   (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
