@@ -12,9 +12,6 @@
 (define (pad_str str_val nb)
   (~a str_val #:min-width nb #:pad-string "0"))
 
-(define (pad_int_hexstr int_val pad_val)
-  (~r int_val #:base 16 #:min-width pad_val #:pad-string "0"))
-
 (define (pad_int_binarystr int_val pad_val)
   (~r int_val #:base 2 #:min-width pad_val #:pad-string "0"))
 
@@ -34,9 +31,7 @@
   (define char_list (string->list hexstring))
   (define str_list (map string char_list))
   (define nb_list (map (lambda (nb) (string->number nb 16)) str_list))
-  (define binary_list
-    (map (lambda (val) (pad_int_binarystr val 4))
-         nb_list))
+  (define binary_list (map (lambda (val) (pad_int_binarystr val 4)) nb_list))
   (define concac_list (string-append* binary_list))
   (define splitlist (splitnbpart concac_list 5))
   (define list_str (list-update splitlist (- (length splitlist) 1) pad_str))
@@ -109,47 +104,66 @@
     [else #f]))
 
 (define (bech32_decode bech32_str)
- ; TODO : check if the data part of the bech32 string only contains CHARSET element
- ;Decoders MUST NOT accept strings where some characters are uppercase and some are lowercase (such strings are referred to as mixed case strings). 
- (when (and (not (equal? bech32_str (string-downcase bech32_str))) (not (equal? bech32_str (string-upcase bech32_str)))) (error "mixed case strings are not allowed"))
- (define bech32_string (string-downcase bech32_str))
- (define hrp_compute (substring bech32_string 0 2))
- ; MUST verify that the human-readable part is "bc" for mainnet and "tb" for testnet.
- (when (and (not (equal? hrp_compute bech32_bitcoin_prefix)) (not (equal? hrp_compute bech32_testnet_prefix))) (error "not a valid hrp"))
- (define separator_compute (substring bech32_string 2 3))
- (when (not (equal? separator_compute bech32_separator)) (error "not a valid separator"))
- (define code_list (string->list bech32chars))
- (define bech32_string_vals (substring bech32_string 3))
- (define bech32_charlist (string->list bech32_string_vals))
- (define bech32_intlist (map (lambda (char) (index-of code_list char)) bech32_charlist))
- (when (not (bech32_verify_checksum hrp_compute bech32_intlist)) (error "checksum is not valid"))
- (define bech32const_val (bech32_recompute_checksum hrp_compute bech32_intlist))
- (define first_val (car bech32_intlist))
- ; MUST verify that the first decoded data value (the witness version) is between 0 and 16, inclusive.
- (when (or (> first_val 16) (< first_val 0)) (error "first value cannot be superior to 16 or inferior to 0"))
- (when (or (and (= first_val 0) (not (= bech32const_val BECH32_CONST))) (and (not (= first_val 0)) (not (= bech32const_val BECH32M_CONST)))) (error "first value do not match the checksum"))
-; now we have our (5bit encoded) list as int
-; convert each int in base 2
-(define bech32_intlist_no_first_val (cdr bech32_intlist))
-(define bech32_intlist_nochecksum (drop-right bech32_intlist_no_first_val 6))
-(define bech32_binarylist (map (lambda (nb) (pad_int_binarystr nb 5)) bech32_intlist_nochecksum))
-(define concac_list (string-append* bech32_binarylist))
-(define splitlist (splitnbpart concac_list 8))
-; if incomplete group at the end, it must be of 4bit or less, must be all zeros, should be discarded 
-(define splitlist_clean 
-  (cond 
-    [(= (string-length (last splitlist)) 8) splitlist]
-    [(and (<= (string-length (last splitlist)) 4) (equal? (last splitlist) (make-string (length (last splitlist)) #\0))) (drop-right splitlist 1)]
-    [else (error "not a valid bech32 string: imcomplete group is more than 5bit")]
-  ))
-; convert the (8 bit encoded str) into the int value
-(define intlistnew (map (lambda (nb) (string->number nb 2)) splitlist_clean))
-;There MUST be between 2 and 40 groups, which are interpreted as the bytes of the witness program.
-(when (or (< (length intlistnew) 2) (> (length intlistnew) 40)) (error "not a valid bech32: number of groups invalid [2:40]"))
-; convert the int into a hex str
-(define hexlist (map (lambda (nb) (number->string nb 16)) intlistnew))
-; concat the hex
-(define concac_hex (string-append* hexlist))
- concac_hex)
+  ; TODO : check if the data part of the bech32 string only contains CHARSET element
+  ;Decoders MUST NOT accept strings where some characters are uppercase and some are lowercase (such strings are referred to as mixed case strings).
+  (when (and (not (equal? bech32_str (string-downcase bech32_str)))
+             (not (equal? bech32_str (string-upcase bech32_str))))
+    (error "mixed case strings are not allowed"))
+  (define bech32_string (string-downcase bech32_str))
+  (define hrp_compute (substring bech32_string 0 2))
+  ; MUST verify that the human-readable part is "bc" for mainnet and "tb" for testnet.
+  (when (and (not (equal? hrp_compute bech32_bitcoin_prefix))
+             (not (equal? hrp_compute bech32_testnet_prefix)))
+    (error "not a valid hrp"))
+  (define separator_compute (substring bech32_string 2 3))
+  (when (not (equal? separator_compute bech32_separator))
+    (error "not a valid separator"))
+  (define code_list (string->list bech32chars))
+  (define bech32_string_vals (substring bech32_string 3))
+  (define bech32_charlist (string->list bech32_string_vals))
+  (define bech32_intlist
+    (map (lambda (char) (index-of code_list char)) bech32_charlist))
+  (when (not (bech32_verify_checksum hrp_compute bech32_intlist))
+    (error "checksum is not valid"))
+  (define bech32const_val
+    (bech32_recompute_checksum hrp_compute bech32_intlist))
+  (define first_val (car bech32_intlist))
+  ; MUST verify that the first decoded data value (the witness version) is between 0 and 16, inclusive.
+  (when (or (> first_val 16) (< first_val 0))
+    (error "first value cannot be superior to 16 or inferior to 0"))
+  (when (or (and (= first_val 0) (not (= bech32const_val BECH32_CONST)))
+            (and (not (= first_val 0)) (not (= bech32const_val BECH32M_CONST))))
+    (error "first value do not match the checksum"))
+  ; now we have our (5bit encoded) list as int
+  ; convert each int in base 2
+  (define bech32_intlist_no_first_val (cdr bech32_intlist))
+  (define bech32_intlist_nochecksum (drop-right bech32_intlist_no_first_val 6))
+  (define bech32_binarylist
+    (map (lambda (nb) (pad_int_binarystr nb 5)) bech32_intlist_nochecksum))
+  (define concac_list (string-append* bech32_binarylist))
+  (define splitlist (splitnbpart concac_list 8))
+  ; if incomplete group at the end, it must be of 4bit or less, must be all zeros, should be discarded
+  (define splitlist_clean
+    (cond
+      [(= (string-length (last splitlist)) 8) splitlist]
+      [(and (<= (string-length (last splitlist)) 4)
+            (equal? (last splitlist)
+                    (make-string (length (last splitlist)) #\0)))
+       (drop-right splitlist 1)]
+      [else
+       (error
+        "not a valid bech32 string: imcomplete group is more than 5bit")]))
+  ; convert the (8 bit encoded str) into the int value
+  (define intlistnew (map (lambda (nb) (string->number nb 2)) splitlist_clean))
+  ;There MUST be between 2 and 40 groups, which are interpreted as the bytes of the witness program.
+  (when (or (< (length intlistnew) 2) (> (length intlistnew) 40))
+    (error "not a valid bech32: number of groups invalid [2:40]"))
+  ; convert the int into a hex str
+  (define hexlist (map (lambda (nb) (number->string nb 16)) intlistnew))
+  ; concat the hex
+  (define concac_hex (string-append* hexlist))
+  concac_hex)
 
-(provide bech32_encode bech32_decode bech32_verify_checksum)
+(provide bech32_encode
+         bech32_decode
+         bech32_verify_checksum)
