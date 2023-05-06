@@ -18,12 +18,17 @@
 	
 * Adding wallet
 	* Cleaning code
+	* Tests vector for wallet generation
 	* Store the private key in a file
 
 #NICE TO HAVE
 * Test suite for all files
 
+* Transform curve,ecdsa,schnorr,base58 and bech32 into library
+
 * Reformat wallet to have a big private_to_address function
+	* Chose the address type (p2pkh,p2tr, ...)
+	* Allow to create address for testnet,litecoin etc
 
 * Cypher the file where the private key is stored (with a password)
 

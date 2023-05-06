@@ -5,7 +5,8 @@
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
 (define base (string-length code_string)) ; should give 58
 
-; value is an int
+; input: value, type = int
+; output, type = base58 encoded string
 (define (base58encode value)
   (define (ref->string str k)
     (string (string-ref str k)))
@@ -17,7 +18,8 @@
          (quotient val base))))
   (base58enc "" value))
 
-; value is a base58 encoded string
+; input: value, type = base58 encoded string
+; output, type = int
 (define (base58decode value)
   (define code_list (string->list code_string))
   (define l (string->list value))

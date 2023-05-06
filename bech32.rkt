@@ -7,18 +7,16 @@
 (define BECH32M_CONST #x2bc830a3)
 
 ; used in bech32 format, take a str with binary data, return list of 5bytes str
-(define (split5part str) ; maybe I can do it in pure forme with fold
-  (define str_l (string-length str))
-  (define nb_string (quotient str_l 5))
-  (define rest_string (remainder str_l 5))
-  (define list_str '())
-  (for ([i nb_string])
-    (set! list_str (cons (substring str (* i 5) (* (+ i 1) 5)) list_str)))
-  (when (> rest_string 0)
-    (set!
-     list_str
-     (cons (~a (substring str (* nb_string 5)) #:min-width 5 #:pad-string "0")
-           list_str)))
+(define (split5part str)
+  (define (split5 lst acc)
+    (cond 
+      [(= (length lst) 0) acc]
+      [(< (length lst) 5) (cons lst acc)] 
+      [else (split5 (list-tail lst 5) (cons (take lst 5) acc))]))
+  (define list_split5 (split5 (string->list str) '()))
+  (define list_string (map list->string list_split5))
+  (define (pad_str str) (~a str #:min-width 5 #:pad-string "0"))
+  (define list_str (list-update list_string 0 pad_str))
   (reverse list_str))
 
 ; used in bech32 format
@@ -34,8 +32,8 @@
   (define binarylistnew (map (lambda (nb) (string->number nb 2)) splitlist))
   binarylistnew)
 
-(define (expandhrp) ; should allow to choose the hrp (for now only "bc")
-  (define charlist (string->list bech32_bitcoin_prefix))
+(define (expandhrp hrp) ; should allow to choose the hrp (for now only "bc")
+  (define charlist (string->list hrp))
   (define char_val (map char->integer charlist))
   (define left_val (map (lambda (nb) (arithmetic-shift nb -5)) char_val))
   (define right_val (map (lambda (nb) (bitwise-and nb 31)) char_val))
@@ -44,22 +42,26 @@
 (define (bech32_polymod values) ; values in list of int
   (define GEN '(#x3b6a57b2 #x26508e6d #x1ea119fa #x3d4233dd #x2a1462b3))
   (define chk 1)
-  (for-each
-   (lambda (nb)
-     (define b (arithmetic-shift chk -25))
-     (set! chk
-           (bitwise-xor (arithmetic-shift (bitwise-and chk #x1ffffff) 5) nb))
-     (for ([i 5])
-       (set! chk
-             (bitwise-xor chk
-                          (if (= (bitwise-and (arithmetic-shift b (- i)) 1) 1)
-                              (list-ref GEN i)
-                              0)))))
-   values)
-  chk)
+  (define (compute_chk_gen chk_val gen_val inc b_val)
+    (bitwise-xor chk_val
+      (if (= (bitwise-and (arithmetic-shift b_val (- inc)) 1) 1)
+          gen_val
+          0)))
+  (define (update_chk_value chk value)
+    (define b_val (arithmetic-shift chk -25))
+    (define (update_chk_with_GEN gen acc inc)
+      (if (equal? gen '())
+        acc
+        (update_chk_with_GEN (cdr gen) (compute_chk_gen acc (car gen) inc b_val) (+ 1 inc))))
+    (update_chk_with_GEN GEN (bitwise-xor (arithmetic-shift (bitwise-and chk #x1ffffff) 5) value) 0))
+  (define (polymod_shift values_list acc)
+    (if (equal? values_list '())
+      acc
+      (polymod_shift (cdr values_list) (update_chk_value acc (car values_list)))))
+  (polymod_shift values chk))
 
-(define (generate_checksum_bech32 val #:version [version 1])
-  (define values (append (expandhrp) val))
+(define (generate_checksum_bech32 val #:version [version 1] #:hrp [hrp bech32_bitcoin_prefix])
+  (define values (append (expandhrp hrp) val))
   (define const_val (if (= version 0) BECH32_CONST BECH32M_CONST))
   (define polymod
     (bitwise-xor (bech32_polymod (append values '(0 0 0 0 0 0))) const_val))

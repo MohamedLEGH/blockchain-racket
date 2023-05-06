@@ -16,7 +16,6 @@
 (define bitcoin_addrprefix "00")
 (define bitcoin_addrprefix_scripthash
   "05") ; Version byte is 5 for a main-network address, 196 for a testnet address
-
 ;; opcodes
 (define OP_0 "00")
 (define OP_DUP "76")
