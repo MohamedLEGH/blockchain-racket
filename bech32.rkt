@@ -15,8 +15,8 @@
       [else (split5 (list-tail lst 5) (cons (take lst 5) acc))]))
   (define list_split5 (split5 (string->list str) '()))
   (define list_string (map list->string list_split5))
-  (define (pad_str str)
-    (~a str #:min-width 5 #:pad-string "0"))
+  (define (pad_str str_val)
+    (~a str_val #:min-width 5 #:pad-string "0"))
   (define list_str (list-update list_string 0 pad_str))
   (reverse list_str))
 
@@ -43,12 +43,12 @@
 (define (bech32_polymod values) ; values is a list of int
   (define GEN '(#x3b6a57b2 #x26508e6d #x1ea119fa #x3d4233dd #x2a1462b3))
   (define chk 1)
-  (define (chk_xor_gen chk_val gen_val inc b_val)
+  (define (chk_xor_gen chk_v gen_val inc b_val)
     (bitwise-xor
-     chk_val
+     chk_v
      (if (= (bitwise-and (arithmetic-shift b_val (- inc)) 1) 1) gen_val 0)))
-  (define (update_chk_value chk value)
-    (define b_val (arithmetic-shift chk -25))
+  (define (update_chk_value chk_val value)
+    (define b_val (arithmetic-shift chk_val -25))
     (define (update_chk_with_GEN gen acc inc)
       (if (equal? gen '())
           acc
@@ -57,7 +57,7 @@
                                (+ 1 inc))))
     (update_chk_with_GEN
      GEN
-     (bitwise-xor (arithmetic-shift (bitwise-and chk #x1ffffff) 5) value)
+     (bitwise-xor (arithmetic-shift (bitwise-and chk_val #x1ffffff) 5) value)
      0))
   (define (polymod_compute values_list acc)
     (if (equal? values_list '())
