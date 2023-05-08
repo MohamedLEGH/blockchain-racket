@@ -1,17 +1,17 @@
 #lang racket
-(require sha) ; should replace sha with crypto based sha256_hex
+(require "crypto-utils.rkt")
 (require "transaction.rkt")
 
 ; need to add reward ??
 ; need to add verif block
 (struct block
-        (index previous_hash nonce timestamp tx_list miner_address hash_val)
+        (index previous-hash nonce timestamp tx-list miner-address hash-val)
   #:prefab)
 
-(define (add_tx_block t b)
-  (define new_list (cons t (block-tx_list b)))
-  (define new_block (struct-copy block b [tx_list new_list]))
-  new_block)
+(define (add-tx-block t b)
+  (define new-list (cons t (block-tx-list b)))
+  (define new-block (struct-copy block b [tx-list new-list]))
+  new-block)
 
 (define (txlist->string txlist)
   (define (string-append/tx tx str)
@@ -20,12 +20,12 @@
 
 (define (block->string b)
   (string-append (number->string (block-index b))
-                 (block-previous_hash b)
+                 (block-previous-hash b)
                  (number->string (block-nonce b))
                  (number->string (block-timestamp b))
-                 (txlist->string (block-tx_list b))
-                 (block-miner_address b)
-                 (block-hash_val b)))
+                 (txlist->string (block-tx-list b))
+                 (block-miner-address b)
+                 (block-hash-val b)))
 
 (define (txlist->jsexpr txlist)
   (define (build-txlist-jsexpr js acc)
@@ -35,39 +35,39 @@
 (define (block->jsexpr b)
   (hash 'index
         (block-index b)
-        'previous_hash
-        (block-previous_hash b)
+        'previous-hash
+        (block-previous-hash b)
         'nonce
         (block-nonce b)
         'timestamp
         (block-timestamp b)
-        'tx_list
-        (txlist->jsexpr (block-tx_list b))
-        'miner_address
-        (block-miner_address b)
-        'hash_val
-        (block-hash_val b)))
+        'tx-list
+        (txlist->jsexpr (block-tx-list b))
+        'miner-address
+        (block-miner-address b)
+        'hash-val
+        (block-hash-val b)))
 
-(define (hash_block b n)
-  (define new_block (struct-copy block b [nonce n]))
-  (bytes->hex-string (sha256 (string->bytes/utf-8 (block->string new_block)))))
+(define (hash-block b n)
+  (define new-block (struct-copy block b [nonce n]))
+  (sha256-hex (string->bytes/utf-8 (block->string new-block))))
 
-(define (mine_block b difficulty_bit_level)
+(define (mine-block b difficulty-bit-level)
   ; return final nonce
   ; target is 2^(256-difficulty)-1
-  (define target (- (expt 2 (- 256 difficulty_bit_level)) 1))
-  (define (proof_of_work b_val acc)
-    (define hash_val
-      (string->number (hash_block b_val acc) 16)) ; hexstring to number
-    (if (< hash_val target) acc (proof_of_work b_val (add1 acc))))
-  (proof_of_work b 0))
+  (define target (- (expt 2 (- 256 difficulty-bit-level)) 1))
+  (define (proof-of-work b-val acc)
+    (define hash-val
+      (string->number (hash-block b-val acc) 16)) ; hexstring to number
+    (if (< hash-val target) acc (proof-of-work b-val (add1 acc))))
+  (proof-of-work b 0))
 
 (provide (struct-out block)
-         add_tx_block
+         add-tx-block
          txlist->string
          block->string
          txlist->jsexpr
          block->jsexpr
-         hash_block
-         mine_block
+         hash-block
+         mine-block
          (all-from-out "transaction.rkt"))

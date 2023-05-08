@@ -1,34 +1,30 @@
 #lang racket
-(require math/number-theory)
-(require crypto)
-(require crypto/libcrypto)
-(crypto-factories (list libcrypto-factory))
-(require "field.rkt")
-(require "curve.rkt")
+(require math/number-theory
+         secp256k1)
 (require "crypto-utils.rkt")
 
-(define (sign_ecdsa pk msg) ; should check if siging is the same in bitcoin
-  (define k (generate_random))
-  (define R (rmul_point G k))
-  (define r_val (field-element-value (point-x R)))
-  (define s_val (with-modulus N (mod/ (+ msg (* r_val pk)) k)))
-  (signature r_val s_val))
+(define (sign-ecdsa pk msg) ; should check if siging is the same in bitcoin
+  (define k (generate-random))
+  (define R (rmul-point G k))
+  (define r-val (field-element-value (point-x R)))
+  (define s-val (with-modulus N (mod/ (+ msg (* r-val pk)) k)))
+  (signature r-val s-val))
 
-(define (verify_ecdsa
+(define (verify-ecdsa
          sig
          pub
          msg) ; should check if verify signature is the same in bitcoin
   ; sig is type signature
   ; pub is a public point
   ; msg is an int
-  (define s_val (signature-s sig))
-  (define r_val (signature-r sig))
-  (define u (with-modulus N (mod/ msg s_val)))
-  (define v (with-modulus N (mod/ r_val s_val)))
-  (define r_compute
+  (define s-val (signature-s sig))
+  (define r-val (signature-r sig))
+  (define u (with-modulus N (mod/ msg s-val)))
+  (define v (with-modulus N (mod/ r-val s-val)))
+  (define r-compute
     (field-element-value
-     (point-x (add_point (rmul_point G u) (rmul_point pub v)))))
-  (equal? r_compute r_val))
+     (point-x (add-point (rmul-point G u) (rmul-point pub v)))))
+  (equal? r-compute r-val))
 
-(provide sign_ecdsa
-         verify_ecdsa)
+(provide sign-ecdsa
+         verify-ecdsa)

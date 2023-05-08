@@ -8,197 +8,197 @@
 ; todo : testnet sufix
 ; compressed wif keys: c instead of 9 for testnet)
 ;; mainnet prefix
-(define bitcoin_wifprefix "80")
-(define bitcoin_wifsufix_compressed "01")
-(define bitcoin_pubkeyprefix "04")
-(define bitcoin_pubkeyprefix_even "02")
-(define bitcoin_pubkeyprefix_odd "03")
-(define bitcoin_addrprefix "00")
-(define bitcoin_addrprefix_scripthash
+(define bitcoin-wifprefix "80")
+(define bitcoin-wifsufix-compressed "01")
+(define bitcoin-pubkeyprefix "04")
+(define bitcoin-pubkeyprefix-even "02")
+(define bitcoin-pubkeyprefix-odd "03")
+(define bitcoin-addrprefix "00")
+(define bitcoin-addrprefix-scripthash
   "05") ; Version byte is 5 for a main-network address, 196 for a testnet address
 ;; opcodes
-(define OP_0 "00")
-(define OP_DUP "76")
-(define OP_HASH160 "a9")
-(define OP_EQUALVERIFY "88")
-(define OP_CHECKSIG "ac")
-;(define OP_CHECKMULTISIG "ae")
-;(define OP_1 "81")
+(define OP-0 "00")
+(define OP-DUP "76")
+(define OP-HASH160 "a9")
+(define OP-EQUALVERIFY "88")
+(define OP-CHECKSIG "ac")
+;(define OP-CHECKMULTISIG "ae")
+;(define OP-1 "81")
 
 (define (pushdataval val) ; val in hexa
   (number->string (/ (string-length val) 2) 16))
 
-(define (generate_pk)
-  (number->string (generate_random) 16))
+(define (generate-pk)
+  (number->string (generate-random) 16))
 
-(define (pub_to_compressed pub)
+(define (pub-to-compressed pub)
   ; pub parameter no prefix
   (define x (substring pub 0 64))
   (define y (substring pub 64))
-  (define y_number (string->number y 16))
+  (define y-number (string->number y 16))
   (define prefix
-    (if (= (modulo y_number 2) 0)
-        bitcoin_pubkeyprefix_even
-        bitcoin_pubkeyprefix_odd))
+    (if (= (modulo y-number 2) 0)
+        bitcoin-pubkeyprefix-even
+        bitcoin-pubkeyprefix-odd))
   (string-append prefix x))
 
-(define (pubhex_to_pubschnorr pub)
+(define (pubhex-to-pubschnorr pub)
   (substring pub 0 64))
 
-(define (pubkey_to_compressed pubkey)
-  (pub_to_compressed (substring pubkey 2)))
+(define (pubkey-to-compressed pubkey)
+  (pub-to-compressed (substring pubkey 2)))
 
-(define (generate_checksum_base58 key)
+(define (generate-checksum-base58 key)
   (substring (doublesha256 key) 0 8))
 
-(define (private_to_wif
+(define (private-to-wif
          pk
          #:compressed [compressed #t]) ; key in hexa string format
-  (define pk_with_prefix
+  (define pk-with-prefix
     (if (equal? compressed #t)
-        (string-append bitcoin_wifprefix pk bitcoin_wifsufix_compressed)
-        (string-append bitcoin_wifprefix pk)))
-  (define checksum (generate_checksum_base58 pk_with_prefix))
-  (define pk_with_checksum (string-append pk_with_prefix checksum))
-  (base58check-encode pk_with_checksum))
+        (string-append bitcoin-wifprefix pk bitcoin-wifsufix-compressed)
+        (string-append bitcoin-wifprefix pk)))
+  (define checksum (generate-checksum-base58 pk-with-prefix))
+  (define pk-with-checksum (string-append pk-with-prefix checksum))
+  (base58check-encode pk-with-checksum))
 
-(define (validate_checksum_base58 base58address)
+(define (validate-checksum-base58 base58address)
   (define hash (base58check-decode base58address))
-  (define l_hash (string-length hash))
-  (define data (substring hash 0 (- l_hash 8)))
-  (define checksum (substring hash (- l_hash 8)))
-  (equal? (generate_checksum_base58 data) checksum))
+  (define l-hash (string-length hash))
+  (define data (substring hash 0 (- l-hash 8)))
+  (define checksum (substring hash (- l-hash 8)))
+  (equal? (generate-checksum-base58 data) checksum))
 
-(define (wif_to_private wif)
-  (when (not (validate_checksum_base58 wif))
+(define (wif-to-private wif)
+  (when (not (validate-checksum-base58 wif))
     (error "checksum of the wif is not valid"))
   (define prefix (string-ref wif 0))
-  (define wif_hex (base58check-decode wif))
-  (define l_wif (string-length wif_hex))
-  (define wif_drop_checksum (substring wif_hex 0 (- l_wif 8)))
-  (define pk (substring wif_drop_checksum 2))
-  (define l_pk (string-length pk))
+  (define wif-hex (base58check-decode wif))
+  (define l-wif (string-length wif-hex))
+  (define wif-drop-checksum (substring wif-hex 0 (- l-wif 8)))
+  (define pk (substring wif-drop-checksum 2))
+  (define l-pk (string-length pk))
   (case prefix
-    [(#\L #\K) (substring pk 0 (- l_pk 2))]
+    [(#\L #\K) (substring pk 0 (- l-pk 2))]
     [(#\5) pk]
     [else (error "wrong format for wif")]))
 
-(define (private_to_pubkey pk
+(define (private-to-pubkey pk
                            #:compressed [compressed #t]
                            #:version [version 1]) ; pk in hex format string
   (when (and (not (= version 0)) (equal? compressed #f))
     (error "pubkeys can only be compressed in version 0"))
-  (define pub_val (priv_to_pub pk))
+  (define pub-val (priv-to-pub pk))
   (if (= version 0)
       (if compressed
-          (pub_to_compressed pub_val)
-          (string-append bitcoin_pubkeyprefix pub_val))
-      (pubhex_to_pubschnorr pub_val)))
+          (pub-to-compressed pub-val)
+          (string-append bitcoin-pubkeyprefix pub-val))
+      (pubhex-to-pubschnorr pub-val)))
 
-(define (pubkey_to_P2PK pubkey)
-  (define pushdata_val (pushdataval pubkey))
-  (string-append pushdata_val pubkey OP_CHECKSIG))
+(define (pubkey-to-P2PK pubkey)
+  (define pushdata-val (pushdataval pubkey))
+  (string-append pushdata-val pubkey OP-CHECKSIG))
 
-(define (pubkey_to_pubkeyhash pubkey)
-  (define pubkeyhash (string-append bitcoin_addrprefix (hash160 pubkey)))
-  (define checksum (generate_checksum_base58 pubkeyhash))
-  (define pubkeyhash_with_checksum (string-append pubkeyhash checksum))
-  (base58check-encode pubkeyhash_with_checksum))
+(define (pubkey-to-pubkeyhash pubkey)
+  (define pubkeyhash (string-append bitcoin-addrprefix (hash160 pubkey)))
+  (define checksum (generate-checksum-base58 pubkeyhash))
+  (define pubkeyhash-with-checksum (string-append pubkeyhash checksum))
+  (base58check-encode pubkeyhash-with-checksum))
 
-(define (private_to_pubkeyhash pk #:compressed [compressed #t])
-  (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
-  (pubkey_to_pubkeyhash pubkey))
+(define (private-to-pubkeyhash pk #:compressed [compressed #t])
+  (define pubkey (private-to-pubkey pk #:version 0 #:compressed compressed))
+  (pubkey-to-pubkeyhash pubkey))
 
-(define (pubkeyhashbase58_to_pubkeyhashhex
+(define (pubkeyhashbase58-to-pubkeyhashhex
          pubkeyhash) ; from base58 format to hex format of hash160(pubkey)
-  (when (not (validate_checksum_base58 pubkeyhash))
+  (when (not (validate-checksum-base58 pubkeyhash))
     (error "checksum of the address is not valid"))
-  (define hexa_val (base58check-decode pubkeyhash))
-  (define hexa_val_l (string-length hexa_val))
-  (define val_no_checksum (substring hexa_val 0 (- hexa_val_l 8)))
-  (define val_no_prefix (substring val_no_checksum 2))
-  val_no_prefix)
+  (define hexa-val (base58check-decode pubkeyhash))
+  (define hexa-val-l (string-length hexa-val))
+  (define val-no-checksum (substring hexa-val 0 (- hexa-val-l 8)))
+  (define val-no-prefix (substring val-no-checksum 2))
+  val-no-prefix)
 
 ; La scriptPubKey dans P2PKH est la suivante :
-; OP_DUP OP_HASH160 <hash de clé publique> OP_EQUALVERIFY OP_CHECKSIG
-;scriptPubKey: OP_HASH160 [20-byte-hash of {[pubkey] OP_CHECKSIG} ] OP_EQUAL
+; OP-DUP OP-HASH160 <hash de clé publique> OP-EQUALVERIFY OP-CHECKSIG
+;scriptPubKey: OP-HASH160 [20-byte-hash of {[pubkey] OP-CHECKSIG} ] OP-EQUAL
 ; Our scriptSig needs to take the form: <0 0x14 <20-byte-key-hash>>
 ; return a scriptPubKey
-(define (pubkeyhash_to_P2PKH pubkeyhash)
-  (define hexa_pubkey (pubkeyhashbase58_to_pubkeyhashhex pubkeyhash))
-  (define pushdata_val (pushdataval hexa_pubkey))
-  (string-append OP_DUP
-                 OP_HASH160
-                 pushdata_val
-                 hexa_pubkey
-                 OP_EQUALVERIFY
-                 OP_CHECKSIG))
+(define (pubkeyhash-to-P2PKH pubkeyhash)
+  (define hexa-pubkey (pubkeyhashbase58-to-pubkeyhashhex pubkeyhash))
+  (define pushdata-val (pushdataval hexa-pubkey))
+  (string-append OP-DUP
+                 OP-HASH160
+                 pushdata-val
+                 hexa-pubkey
+                 OP-EQUALVERIFY
+                 OP-CHECKSIG))
 
-(define (pubkey_to_pubkeyscripthash
+(define (pubkey-to-pubkeyscripthash
          pubkey) ; pubkey in hex format with pubkey prefix
-  (define script (pubkey_to_P2PK pubkey))
+  (define script (pubkey-to-P2PK pubkey))
   (define address
-    (string-append bitcoin_addrprefix_scripthash (hash160 script)))
+    (string-append bitcoin-addrprefix-scripthash (hash160 script)))
   (base58check-encode
-   (string-append address (generate_checksum_base58 address))))
+   (string-append address (generate-checksum-base58 address))))
 
-(define (private_to_pubkeyscripthash pk #:compressed [compressed #t])
-  (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
-  (pubkey_to_pubkeyscripthash pubkey))
+(define (private-to-pubkeyscripthash pk #:compressed [compressed #t])
+  (define pubkey (private-to-pubkey pk #:version 0 #:compressed compressed))
+  (pubkey-to-pubkeyscripthash pubkey))
 
-(define (pubkey_to_nestedpubkeyhash pubkey) ; compressed key is mandatory
-  (define hash160_val (hash160 pubkey))
-  (define pushdata_val (pushdataval hash160_val))
-  (define script (string-append OP_0 pushdata_val hash160_val))
+(define (pubkey-to-nestedpubkeyhash pubkey) ; compressed key is mandatory
+  (define hash160-val (hash160 pubkey))
+  (define pushdata-val (pushdataval hash160-val))
+  (define script (string-append OP-0 pushdata-val hash160-val))
   (define address
-    (string-append bitcoin_addrprefix_scripthash (hash160 script)))
+    (string-append bitcoin-addrprefix-scripthash (hash160 script)))
   (base58check-encode
-   (string-append address (generate_checksum_base58 address))))
+   (string-append address (generate-checksum-base58 address))))
 
-(define (private_to_nestedpubkeyhash pk #:compressed [compressed #t])
-  (define pubkey (private_to_pubkey pk #:version 0 #:compressed compressed))
-  (pubkey_to_nestedpubkeyhash pubkey))
+(define (private-to-nestedpubkeyhash pk #:compressed [compressed #t])
+  (define pubkey (private-to-pubkey pk #:version 0 #:compressed compressed))
+  (pubkey-to-nestedpubkeyhash pubkey))
 
-(define (pubkey_to_bech32
+(define (pubkey-to-bech32
          pubkey
          #:version [version 1]) ; compressed pubkey is mandatory
-  (define val_to_encode (if (= version 0) (hash160 pubkey) pubkey))
-  (bech32-encode val_to_encode #:version version))
+  (define val-to-encode (if (= version 0) (hash160 pubkey) pubkey))
+  (bech32-encode val-to-encode #:version version))
 
-(define (private_to_bech32 pk #:version [version 1])
+(define (private-to-bech32 pk #:version [version 1])
   (define pub
-    (private_to_pubkey pk #:version version)) ; compressed keys are mandatory
-  (pubkey_to_bech32 pub #:version version))
+    (private-to-pubkey pk #:version version)) ; compressed keys are mandatory
+  (pubkey-to-bech32 pub #:version version))
 
-(define (pubkey_to_bech32taproot
+(define (pubkey-to-bech32taproot
          pubkey) ; pub as a x-only public key in hex format
-  (define Qx (tweak_pubkey pubkey "")) ; tweak pubkey with a "NULL" value
+  (define Qx (tweak-pubkey pubkey "")) ; tweak pubkey with a "NULL" value
   ; convert to bech32
-  (pubkey_to_bech32 Qx))
+  (pubkey-to-bech32 Qx))
 
-(define (private_to_bech32taproot pk)
-  (define pub (private_to_pubkey pk))
-  (pubkey_to_bech32taproot pub))
+(define (private-to-bech32taproot pk)
+  (define pub (private-to-pubkey pk))
+  (pubkey-to-bech32taproot pub))
 
-(provide generate_checksum_base58
-         validate_checksum_base58
-         generate_pk
-         private_to_wif
-         wif_to_private
-         private_to_pubkey
-         pubkey_to_pubkeyhash
-         private_to_pubkeyhash
-         pub_to_compressed
-         pubhex_to_pubschnorr
-         pubkey_to_compressed
-         pubkey_to_P2PK
-         pubkeyhashbase58_to_pubkeyhashhex
-         pubkeyhash_to_P2PKH
-         pubkey_to_pubkeyscripthash
-         private_to_pubkeyscripthash
-         pubkey_to_nestedpubkeyhash
-         private_to_nestedpubkeyhash
-         pubkey_to_bech32
-         private_to_bech32
-         pubkey_to_bech32taproot
-         private_to_bech32taproot)
+(provide generate-checksum-base58
+         validate-checksum-base58
+         generate-pk
+         private-to-wif
+         wif-to-private
+         private-to-pubkey
+         pubkey-to-pubkeyhash
+         private-to-pubkeyhash
+         pub-to-compressed
+         pubhex-to-pubschnorr
+         pubkey-to-compressed
+         pubkey-to-P2PK
+         pubkeyhashbase58-to-pubkeyhashhex
+         pubkeyhash-to-P2PKH
+         pubkey-to-pubkeyscripthash
+         private-to-pubkeyscripthash
+         pubkey-to-nestedpubkeyhash
+         private-to-nestedpubkeyhash
+         pubkey-to-bech32
+         private-to-bech32
+         pubkey-to-bech32taproot
+         private-to-bech32taproot)

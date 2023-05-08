@@ -1,56 +1,56 @@
 #lang racket
-(require crypto)
-(require crypto/libcrypto)
+(require crypto
+         crypto/libcrypto
+         secp256k1)
 (crypto-factories (list libcrypto-factory))
-(require "curve.rkt")
 
-(define (generate_random)
+(define (generate-random)
   (define p
     (for/fold ([result 0]) ([byte (in-bytes (crypto-random-bytes 32))])
       (+ byte (* result 256))))
   ; the random number need to be inferior to N (the order of the curve)
   ; if it's not the case (small probability), recompute a random number
-  (if (and (< p N) (> p 0)) p (generate_random)))
+  (if (and (< p N) (> p 0)) p (generate-random)))
 
-(define (priv_to_pub pk) ; pk in hexa string format
-  (point_to_string (rmul_point G (string->number pk 16))))
+(define (priv-to-pub pk) ; pk in hexa string format
+  (point-to-string (rmul-point G (string->number pk 16))))
 
 (struct signature (r s)) ; should check if signature is the same in bitcoin
 
-(define (signature->string tx_val)
-  (string-append (number->string (signature-r tx_val))
-                 (number->string (signature-s tx_val))))
+(define (signature->string tx-val)
+  (string-append (number->string (signature-r tx-val))
+                 (number->string (signature-s tx-val))))
 
-(define (signature->jsexpr sig_val)
-  (hash 'r (signature-r sig_val) 's (signature-s sig_val)))
+(define (signature->jsexpr sig-val)
+  (hash 'r (signature-r sig-val) 's (signature-s sig-val)))
 
-(define (sha256_hex value)
+(define (sha256-hex value)
   (bytes->hex-string (digest 'sha256 (hex->bytes value))))
 
-(define (ripemd160_hex value)
+(define (ripemd160-hex value)
   (bytes->hex-string (digest 'ripemd160 (hex->bytes value))))
 
 (define (doublesha256 value)
-  (sha256_hex (sha256_hex value)))
+  (sha256-hex (sha256-hex value)))
 
 (define (hash160 value)
-  (ripemd160_hex (sha256_hex value)))
+  (ripemd160-hex (sha256-hex value)))
 
-(define (tagged_hash tag value)
-  (define tag_digest
+(define (tagged-hash tag value)
+  (define tag-digest
     (bytes->hex-string (digest 'sha256
                                (string->bytes/utf-8
                                 tag)))) ; the tag is a utf-8 string value
-  (define preimage (string-append tag_digest tag_digest value))
-  (sha256_hex preimage))
+  (define preimage (string-append tag-digest tag-digest value))
+  (sha256-hex preimage))
 
 (provide (struct-out signature)
          signature->jsexpr
          signature->string
-         generate_random
-         priv_to_pub
-         sha256_hex
-         ripemd160_hex
+         generate-random
+         priv-to-pub
+         sha256-hex
+         ripemd160-hex
          doublesha256
          hash160
-         tagged_hash)
+         tagged-hash)

@@ -5,7 +5,7 @@
 (define tx1 (tx "network" "me" 10))
 (define tx2 (tx "myself" "moha" 30))
 (block->string b1)
-(define b2 (add_tx_block tx1 b1))
-(define b3 (add_tx_block tx2 b2))
+(define b2 (add-tx-block tx1 b1))
+(define b3 (add-tx-block tx2 b2))
 
-;; (enter! "test_block.rkts")
+;; (enter! "test-block.rkts")
