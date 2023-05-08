@@ -22,9 +22,8 @@
 	* Store the private key in a file
 
 #NICE TO HAVE
-* Test suite for all files
 
-* Transform curve,ecdsa,schnorr,base58 and bech32 into library
+* Test suite for all files
 
 * Reformat wallet to have a big private_to_address function
 	* Chose the address type (p2pkh,p2tr, ...)
@@ -48,6 +47,8 @@
 	* Compressed keys
 * Bitcoin format for pubkeys
 	* others format for bitcoin keys
+
+* Transform curve,ecdsa,schnorr,base58 and bech32 into library
 
 ## Formatter
 raco fmt -i --width 80 *.rkt

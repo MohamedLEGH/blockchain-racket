@@ -1,8 +1,7 @@
 #lang racket
-(require base58check)
-(require bech32)
-(require "crypto-utils.rkt")
-(require "schnorr.rkt")
+(require base58check
+         bech32
+         crypto-sign)
 
 ;; ALL VALUES ARE IN HEXA
 ; todo : testnet sufix
@@ -29,7 +28,7 @@
   (number->string (/ (string-length val) 2) 16))
 
 (define (generate-pk)
-  (number->string (generate-random) 16))
+  (number->string (generate-random-value) 16))
 
 (define (pub-to-compressed pub)
   ; pub parameter no prefix
