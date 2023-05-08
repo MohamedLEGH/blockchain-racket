@@ -1,8 +1,8 @@
 #lang racket
 (require base58check)
+(require bech32)
 (require "crypto-utils.rkt")
 (require "schnorr.rkt")
-(require "bech32.rkt")
 
 ;; ALL VALUES ARE IN HEXA
 ; todo : testnet sufix
@@ -163,7 +163,7 @@
          pubkey
          #:version [version 1]) ; compressed pubkey is mandatory
   (define val_to_encode (if (= version 0) (hash160 pubkey) pubkey))
-  (bech32_encode val_to_encode #:version version))
+  (bech32-encode val_to_encode #:version version))
 
 (define (private_to_bech32 pk #:version [version 1])
   (define pub
