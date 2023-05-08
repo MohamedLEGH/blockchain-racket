@@ -25,9 +25,10 @@
   (string-append (field_to_string (point-x point_val))
                  (field_to_string (point-y point_val))))
 
-(define (on_curve? point_val ec)
+(define (on_curve? point_val)
   (define x (point-x point_val))
   (define y (point-y point_val))
+  (define ec (point-curve point_val))
   (define a (elliptic-curve-a ec))
   (define b (elliptic-curve-b ec))
   (define ysquare (pow_element y 2))
@@ -51,6 +52,7 @@
 
 (define (add_point point1 point2)
   ; TODO: check if points are on the curve
+  ; TODO: check if points have the same curve
 
   (cond
     [(equal? point1 I) point2]
@@ -72,7 +74,6 @@
      (point x3 y3 secp256k1)]
     [(and (equal? point1 point2) (equal? (point-y point1) +inf.0)) I]
     [(equal? point1 point2)
-     ;x1, y1, a = self.x, self.y, self.curve.a
      (define x1 (point-x point1))
      (define y1 (point-y point1))
      (define a (elliptic-curve-a (point-curve point1)))
@@ -87,17 +88,16 @@
      (point x3 y3 secp256k1)]
     [else (error "cannot add the 2 points on the curve")]))
 
-(define (binary_expansion value scalar)
-  (cond
-    [(equal? scalar 0) I]
-    [(equal? scalar 1) value]
-    [(equal? (modulo scalar 2) 1)
-     (add_point value (binary_expansion value (- scalar 1)))]
-    [else (binary_expansion (add_point value value) (/ scalar 2))]))
-
-(define (rmul_point value scalar)
+(define (rmul_point point_value scalar)
   ; TODO: check if point are on the curve
-  (binary_expansion value scalar))
+  (define (binary_expansion p s)
+    (cond
+      [(equal? s 0) I]
+      [(equal? s 1) p]
+      [(equal? (modulo s 2) 1)
+      (add_point p (binary_expansion p (- s 1)))]
+      [else (binary_expansion (add_point p p) (/ s 2))]))
+  (binary_expansion point_value scalar))
 
 (provide (struct-out elliptic-curve)
          (struct-out point)

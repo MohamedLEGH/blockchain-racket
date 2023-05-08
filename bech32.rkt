@@ -103,13 +103,7 @@
   (define const (bech32_polymod (append (expandhrp hrp) bech32_intlist)))
   const)
 
-(define (bech32_verify_checksum hrp bech32_intlist)
-  (define const (bech32_recompute_checksum hrp bech32_intlist))
-  (cond
-    [(or (equal? const BECH32_CONST) (equal? const BECH32M_CONST)) #t]
-    [else #f]))
-
-(define (bech32_decode bech32_str)
+(define (bech32_parsing bech32_str)
   ; TODO : check if the data part of the bech32 string only contains CHARSET element
   ;Decoders MUST NOT accept strings where some characters are uppercase and some are lowercase (such strings are referred to as mixed case strings).
   (when (and (not (equal? bech32_str (string-downcase bech32_str)))
@@ -130,7 +124,22 @@
   (define bech32_string_vals (substring bech32_string 3))
   (define bech32_charlist (string->list bech32_string_vals))
   (define bech32_intlist
-    (map (lambda (char) (index-of code_list char)) bech32_charlist))
+    (map (lambda (char) (index-of code_list char)) bech32_charlist))*
+  (values hrp_compute bech32_intlist))
+
+(define (bech32_verify_checksum hrp bech32_intlist)
+  (define const (bech32_recompute_checksum hrp bech32_intlist))
+  (cond
+    [(or (equal? const BECH32_CONST) (equal? const BECH32M_CONST)) #t]
+    [else #f]))
+
+; value as a bech32 encoded string
+(define (bech32_verify value)
+  (define-values (hrp_compute bech32_intlist) (bech32_parsing value))
+   (bech32_verify_checksum hrp_compute bech32_intlist))
+
+(define (bech32_decode bech32_str)
+  (define-values (hrp_compute bech32_intlist) (bech32_parsing bech32_str))
   (when (not (bech32_verify_checksum hrp_compute bech32_intlist))
     (error "checksum is not valid"))
   (define bech32const_val
@@ -175,4 +184,4 @@
 
 (provide bech32_encode
          bech32_decode
-         bech32_verify_checksum)
+         bech32_verify)
